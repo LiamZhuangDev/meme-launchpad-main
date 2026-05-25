@@ -8,11 +8,7 @@ contract TestWhitelistToken is ERC20, Ownable {
     mapping(address => bool) public isWhitelist;
     bool public isWhitelistEnabled = true;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        uint256 initialSupply
-    ) ERC20(name, symbol) {
+    constructor(string memory name, string memory symbol, uint256 initialSupply) ERC20(name, symbol) {
         _mint(msg.sender, initialSupply * 10 ** decimals());
     }
 
@@ -20,20 +16,13 @@ contract TestWhitelistToken is ERC20, Ownable {
         isWhitelistEnabled = _isWhitelistEnabled;
     }
 
-    function setWhitelist(
-        address[] calldata accounts,
-        bool isWhitelisted
-    ) external onlyOwner {
+    function setWhitelist(address[] calldata accounts, bool isWhitelisted) external onlyOwner {
         for (uint256 i = 0; i < accounts.length; i++) {
             isWhitelist[accounts[i]] = isWhitelisted;
         }
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal override {
+    function _transfer(address from, address to, uint256 amount) internal override {
         if (isWhitelistEnabled) {
             if (isWhitelist[from] || isWhitelist[to]) {
                 super._transfer(from, to, amount);

@@ -37,10 +37,10 @@ import {DeployConfig} from "./DeployConfig.s.sol";
 
 contract DeployScript is Deployer {
     // ============ 配置和地址存储 ============
-    DeployConfig public cfg;           // 部署配置
-    address public MEMEHelperAddr;     // Helper 合约地址
-    address public MEMEFactoryAddr;    // Factory 合约地址
-    address public MEMECoreAddr;       // Core 代理合约地址
+    DeployConfig public cfg; // 部署配置
+    address public MEMEHelperAddr; // Helper 合约地址
+    address public MEMEFactoryAddr; // Factory 合约地址
+    address public MEMECoreAddr; // Core 代理合约地址
 
     /**
      * @notice 初始化部署环境
@@ -48,40 +48,34 @@ contract DeployScript is Deployer {
      */
     function setUp() public override {
         // ===== 选择部署网络（取消注释对应行）=====
-//        projectName = "bnb/";           // BSC 主网
-        projectName = "bnb_test/";      // BSC 测试网
-//        projectName = "xlayer/";        // XLayer 主网
-//        projectName = "xlayer_test/";   // XLayer 测试网
+        //        projectName = "bnb/";           // BSC 主网
+        projectName = "bnb_test/"; // BSC 测试网
+        //        projectName = "xlayer/";        // XLayer 主网
+        //        projectName = "xlayer_test/";   // XLayer 测试网
 
         // ===== 选择部署环境 =====
-        environment = "dev";            // 开发环境
-//        environment = "test";           // 测试环境
-//        environment = "pre";            // 预发布环境
-//        environment = "prod";           // 生产环境
-        
+        environment = "dev"; // 开发环境
+        //        environment = "test";           // 测试环境
+        //        environment = "pre";            // 预发布环境
+        //        environment = "prod";           // 生产环境
+
         super.setUp();
 
         // 加载配置文件
-        string memory path = string.concat(
-            vm.projectRoot(),
-            "/deploy-config/",
-            projectName,
-            environment,
-            ".json"
-        );
+        string memory path = string.concat(vm.projectRoot(), "/deploy-config/", projectName, environment, ".json");
         cfg = new DeployConfig(path);
     }
 
     // ==================== 部署命令示例 ====================
     // BSC 测试网部署：
     // forge script script/Deploy.s.sol:DeployScript --rpc-url $BSC_TEST_RPC --broadcast --verify --etherscan-api-key $ETH_API_KEY --verifier etherscan --legacy --slow
-    
+
     // XLayer 测试网部署（无验证）：
     // forge script script/Deploy.s.sol:DeployScript --rpc-url $XLAYER_TEST_RPC --broadcast --legacy --slow
-    
+
     // BSC 主网部署：
     // forge script script/Deploy.s.sol:DeployScript --rpc-url $BSC_MAIN_RPC --broadcast --verify --etherscan-api-key $ETH_API_KEY --verifier etherscan --legacy --slow
-    
+
     // XLayer 主网部署：
     // forge script script/Deploy.s.sol:DeployScript --rpc-url $XLAYER_MAIN_RPC --broadcast --legacy --slow
 
@@ -93,12 +87,12 @@ contract DeployScript is Deployer {
         // 从环境变量读取部署者私钥
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        
+
         // 读取配置
         address admin = cfg.Admin();
         address signer = cfg.Signer();
         address platformFeeReceiver = cfg.PlatformFeeReceiver();
-        
+
         // 打印部署信息
         console.log("Deploying MEME Launchpad system...");
         console.log("Deployer:", deployer);
@@ -106,22 +100,22 @@ contract DeployScript is Deployer {
         console.log("Signer:", signer);
         console.log("Platform Fee Receiver:", platformFeeReceiver);
         console.log("-----------------------------------");
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         // ===== 部署操作（取消注释需要执行的操作）=====
         // 注意：部署 Helper 前需要先更新 initHash！
-        
-//        deployMEMEVesting();      // 部署归属合约
-//        deployMEMECore();         // 部署核心合约
-//        deployMEMEHelper();       // 部署辅助合约
-//        deployMEMEFactory();      // 部署工厂合约
 
-        setAll();                   // 配置所有合约
-        
-//        upgradeMEMECore();        // 升级核心合约
-//        upgradeMEMEVesting();     // 升级归属合约
-        
+        //        deployMEMEVesting();      // 部署归属合约
+        //        deployMEMECore();         // 部署核心合约
+        //        deployMEMEHelper();       // 部署辅助合约
+        //        deployMEMEFactory();      // 部署工厂合约
+
+        setAll(); // 配置所有合约
+
+        //        upgradeMEMECore();        // 升级核心合约
+        //        upgradeMEMEVesting();     // 升级归属合约
+
         vm.stopBroadcast();
     }
 
@@ -195,23 +189,23 @@ contract DeployScript is Deployer {
             coreImpl = new MetaNodeCore();
             save("MEMECoreImpl", address(coreImpl));
             console.log("MEMECoreImpl deployed at %s", address(coreImpl));
-            
+
             // 2. 部署依赖合约
             address payable factory = payable(deployMEMEFactory());
             address payable helper = payable(deployMEMEHelper());
-            
+
             // 3. 编码初始化数据
             bytes memory initData = abi.encodeWithSelector(
                 MetaNodeCore.initialize.selector,
-                factory,                        // 工厂合约地址
-                helper,                         // 辅助合约地址
-                cfg.Signer(),                   // 签名者地址
-                cfg.PlatformFeeReceiver(),      // 平台费用接收地址
-                cfg.MarginReceiver(),           // 保证金接收地址
-                cfg.GraduateFeeReceiver(),      // 毕业费用接收地址
-                cfg.Admin()                     // 管理员地址
+                factory, // 工厂合约地址
+                helper, // 辅助合约地址
+                cfg.Signer(), // 签名者地址
+                cfg.PlatformFeeReceiver(), // 平台费用接收地址
+                cfg.MarginReceiver(), // 保证金接收地址
+                cfg.GraduateFeeReceiver(), // 毕业费用接收地址
+                cfg.Admin() // 管理员地址
             );
-            
+
             // 4. 部署代理合约
             ERC1967Proxy proxy = new ERC1967Proxy(address(coreImpl), initData);
             console.log("MEMECoreProxy deployed at:", address(proxy));
@@ -234,7 +228,7 @@ contract DeployScript is Deployer {
             addr_ = address(proxy);
             console.log("MEMECoreProxy deployed at %s", addr_);
             save("MEMECore", addr_);
-            
+
             // 7. 配置权限
             MEMEFactory(factory).setMetaNode(address(proxy));
             MEMEHelper(helper).grantRole(MEMEHelper(helper).CORE_ROLE(), address(proxy));
@@ -259,14 +253,14 @@ contract DeployScript is Deployer {
 
             // 2. 部署 Core（如果尚未部署）
             address coreProxyAddr = deployMEMECore();
-            
+
             // 3. 编码初始化数据
             bytes memory vestingInitData = abi.encodeWithSelector(
                 MEMEVesting.initialize.selector,
-                cfg.Admin(),        // 管理员地址
-                coreProxyAddr       // Core 代理地址（作为 operator）
+                cfg.Admin(), // 管理员地址
+                coreProxyAddr // Core 代理地址（作为 operator）
             );
-            
+
             // 4. 部署代理合约
             ERC1967Proxy vestingProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
 
@@ -297,12 +291,12 @@ contract DeployScript is Deployer {
         console.log("New MEMECoreImpl deployed at:", address(newImplementation));
 
         save("MEMECoreImpl", address(newImplementation));
-        
+
         // 执行升级（无额外初始化数据）
         bytes memory initData = "";
         UUPSUpgradeable core = UUPSUpgradeable(payable(currentCoreProxy));
         core.upgradeToAndCall(address(newImplementation), initData);
-        
+
         console.log("Proxy address:", currentCoreProxy);
     }
 
@@ -319,7 +313,7 @@ contract DeployScript is Deployer {
         console.log("New MEMEVestingImpl deployed at:", address(newImplementation));
 
         save("MEMEVestingImpl", address(newImplementation));
-        
+
         // 执行升级
         bytes memory initData = "";
         UUPSUpgradeable vesting = UUPSUpgradeable(payable(currentVestingProxy));
@@ -338,7 +332,7 @@ contract DeployScript is Deployer {
         MetaNodeCore core = MetaNodeCore(payable(address(cfg.MEMECore())));
 
         // ===== 配置地址 =====
-        
+
         // 设置平台费用接收地址
         if (core.platformFeeReceiver() != cfg.PlatformFeeReceiver()) {
             core.setPlatformFeeReceiver(cfg.PlatformFeeReceiver());
@@ -380,7 +374,7 @@ contract DeployScript is Deployer {
         }
 
         // ===== 配置权限 =====
-        
+
         MEMEFactory factory = MEMEFactory(address(cfg.MEMEFactory()));
         MEMEHelper helper = MEMEHelper(payable(address(cfg.MEMEHelper())));
 

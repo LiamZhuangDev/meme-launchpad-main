@@ -48,18 +48,18 @@ import {IPancakeFactory} from "../src/interfaces/IPancakeFactory.sol";
 import {IPancakeRouter02} from "../src/interfaces/IPancakeRouter02.sol";
 import {IVestingParams} from "../src/interfaces/IVestingParams.sol";
 import {IMEMEVesting} from "../src/interfaces/IMEMEVesting.sol";
-import {IPancakePair} from"../test/mocks/IPancakePair.sol";
+import {IPancakePair} from "../test/mocks/IPancakePair.sol";
 
 contract TestCall is Deployer {
     // ============ 配置和合约实例 ============
-    DeployConfig public cfg;              // 部署配置
-    MetaNodeCore public core;             // 核心合约
-    MEMEFactory public factory;           // 工厂合约
-    MEMEHelper public helper;             // 辅助合约
-    MEMEVesting public vesting;           // 归属合约
-    
+    DeployConfig public cfg; // 部署配置
+    MetaNodeCore public core; // 核心合约
+    MEMEFactory public factory; // 工厂合约
+    MEMEHelper public helper; // 辅助合约
+    MEMEVesting public vesting; // 归属合约
+
     // ============ 常量 ============
-    uint256 public secondsInOneDay = 86400;  // 一天的秒数
+    uint256 public secondsInOneDay = 86400; // 一天的秒数
 
     /**
      * @notice 初始化测试环境
@@ -67,27 +67,21 @@ contract TestCall is Deployer {
      */
     function setUp() public override {
         // ===== 选择测试网络（取消注释对应行）=====
-//        projectName = "bnb/";           // BSC 主网
-//        projectName = "bnb_test/";      // BSC 测试网
-        projectName = "xlayer_test/";   // XLayer 测试网
-//        projectName = "xlayer/";        // XLayer 主网
-//        projectName = "base/";          // Base 主网
-//        projectName = "base_sepolia/";  // Base Sepolia
+        //        projectName = "bnb/";           // BSC 主网
+        //        projectName = "bnb_test/";      // BSC 测试网
+        projectName = "xlayer_test/"; // XLayer 测试网
+        //        projectName = "xlayer/";        // XLayer 主网
+        //        projectName = "base/";          // Base 主网
+        //        projectName = "base_sepolia/";  // Base Sepolia
 
         // ===== 选择环境 =====
-        environment = "dev";            // 开发环境
-//        environment = "prod";           // 生产环境
-        
+        environment = "dev"; // 开发环境
+        //        environment = "prod";           // 生产环境
+
         super.setUp();
 
         // 加载配置文件
-        string memory path = string.concat(
-            vm.projectRoot(),
-            "/deploy-config/",
-            projectName,
-            environment,
-            ".json"
-        );
+        string memory path = string.concat(vm.projectRoot(), "/deploy-config/", projectName, environment, ".json");
         cfg = new DeployConfig(path);
     }
 
@@ -98,43 +92,43 @@ contract TestCall is Deployer {
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         console.log("TestCalling ", projectName, environment);
-        
+
         vm.startBroadcast(deployerPrivateKey);
-        
+
         // 初始化合约实例
         core = MetaNodeCore(payable(cfg.MEMECore()));
         factory = MEMEFactory(address(cfg.MEMEFactory()));
         helper = MEMEHelper(payable(address(cfg.MEMEHelper())));
         vesting = MEMEVesting(cfg.MEMEVesting());
-        
+
         // ===== 配置操作 =====
-//        pause();                        // 暂停合约
-        setConfig();                    // 更新配置
-        
+        //        pause();                        // 暂停合约
+        setConfig(); // 更新配置
+
         // ===== Core 合约操作 =====
-//        core.setCreationFee(0);        // 设置创建费用
-//        grantRole();                    // 授予角色权限
-//        address tokenAddress = createToken();  // 创建代币
-        
+        //        core.setCreationFee(0);        // 设置创建费用
+        //        grantRole();                    // 授予角色权限
+        //        address tokenAddress = createToken();  // 创建代币
+
         // ===== 交易操作 =====
-//        address tokenAddress = 0xa229d6d023eec571b6dde707df64f609af524a4d;
-//        uint256 bnbAmount = 0.001 ether;
-//        uint256 tokenAmount = 100000 ether;
-//        buyTokens(tokenAddress, bnbAmount);                              // 联合曲线买入
-//        addLiquidityToPancakeSwapV2(tokenAddress, tokenAmount, bnbAmount); // 添加流动性
-//        buyTokenOnPancake(tokenAddress, bnbAmount);                       // DEX 买入
-//        sellTokenOnPancake(tokenAddress, tokenAmount);                    // DEX 卖出
-//        removeLiquidityFromPancake(0x7f0f99734568fe91BB1B53459caD73239B5Fd4f4); // 移除流动性
+        //        address tokenAddress = 0xa229d6d023eec571b6dde707df64f609af524a4d;
+        //        uint256 bnbAmount = 0.001 ether;
+        //        uint256 tokenAmount = 100000 ether;
+        //        buyTokens(tokenAddress, bnbAmount);                              // 联合曲线买入
+        //        addLiquidityToPancakeSwapV2(tokenAddress, tokenAmount, bnbAmount); // 添加流动性
+        //        buyTokenOnPancake(tokenAddress, bnbAmount);                       // DEX 买入
+        //        sellTokenOnPancake(tokenAddress, tokenAmount);                    // DEX 卖出
+        //        removeLiquidityFromPancake(0x7f0f99734568fe91BB1B53459caD73239B5Fd4f4); // 移除流动性
 
         // ===== 查询操作 =====
-//        address tokenAddress = 0xa229d6D023EeC571B6DDe707DF64F609af524a4D;
-//        getTokenPriceInfo(tokenAddress);   // 查询代币价格
-//        getTradingPairInfo(tokenAddress);  // 查询交易对信息
-//        getVestingInfo(tokenAddress);      // 查询归属信息
-//        getTokenInfo(tokenAddress);        // 查询代币信息
-//        getPairInfo(tokenAddress);         // 查询流动性池信息
-//        getLPTokenBalance(tokenAddress);   // 查询 LP 代币余额
-        
+        //        address tokenAddress = 0xa229d6D023EeC571B6DDe707DF64F609af524a4D;
+        //        getTokenPriceInfo(tokenAddress);   // 查询代币价格
+        //        getTradingPairInfo(tokenAddress);  // 查询交易对信息
+        //        getVestingInfo(tokenAddress);      // 查询归属信息
+        //        getTokenInfo(tokenAddress);        // 查询代币信息
+        //        getPairInfo(tokenAddress);         // 查询流动性池信息
+        //        getLPTokenBalance(tokenAddress);   // 查询 LP 代币余额
+
         vm.stopBroadcast();
     }
 
@@ -222,8 +216,8 @@ contract TestCall is Deployer {
      * @dev 显示指定受益人的所有归属计划详情
      */
     function getVestingInfo(address tokenAddress) public view {
-        address beneficiary = 0xDB83330C3235489439d7EC4F238eAc31E7f614ED;  // 示例受益人地址
-        
+        address beneficiary = 0xDB83330C3235489439d7EC4F238eAc31E7f614ED; // 示例受益人地址
+
         // 获取总归属金额
         (uint256 vested, uint256 claimed, uint256 locked) = vesting.getTotalVestedAmount(tokenAddress, beneficiary);
         console.log("Total vested:", vested);
@@ -244,7 +238,7 @@ contract TestCall is Deployer {
                 console.log("  totalAmount:", vestingSchedule.totalAmount);
                 console.log("  claimedAmount:", vestingSchedule.claimedAmount);
                 console.log("  mode:", uint256(vestingSchedule.mode));
-                
+
                 uint256 claimableAmount = vesting.getClaimableAmount(tokenAddress, beneficiary, i);
                 console.log("  claimableAmount:", claimableAmount);
             }
@@ -263,13 +257,13 @@ contract TestCall is Deployer {
      */
     function getTokenInfo(address tokenAddress) public view {
         MetaNodeToken token = MetaNodeToken(tokenAddress);
-        
+
         console.log("Token Info:");
         console.log("  name:", token.name());
         console.log("  symbol:", token.symbol());
         console.log("  totalSupply:", token.totalSupply());
         console.log("  metaNodeCore:", token.metaNodeCore());
-        
+
         // 获取联合曲线参数
         IMEMECore.BondingCurveParams memory bondingCurve = core.getBondingCurve(tokenAddress);
         console.log("");
@@ -294,54 +288,54 @@ contract TestCall is Deployer {
      * @return tokenAddress 创建的代币地址
      * @dev 演示创建带有多个归属计划的代币
      */
-    function createToken() public returns (address tokenAddress){
+    function createToken() public returns (address tokenAddress) {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
 
         // 配置归属计划
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](3);
-        
+
         // 归属计划1：销毁模式（3% 代币立即销毁）
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 300,                          // 3% (基点)
-            launchTime: block.timestamp,          // 立即开始
-            duration: secondsInOneDay,            // 持续1天（销毁模式会忽略）
+            amount: 300, // 3% (基点)
+            launchTime: block.timestamp, // 立即开始
+            duration: secondsInOneDay, // 持续1天（销毁模式会忽略）
             mode: IVestingParams.VestingMode.BURN
         });
-        
+
         // 归属计划2：线性释放（2% 代币2天线性释放）
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 200,                          // 2% (基点)
-            launchTime: block.timestamp,          // 立即开始
-            duration: secondsInOneDay * 2,        // 持续2天
+            amount: 200, // 2% (基点)
+            launchTime: block.timestamp, // 立即开始
+            duration: secondsInOneDay * 2, // 持续2天
             mode: IVestingParams.VestingMode.LINEAR
         });
-        
+
         // 归属计划3：悬崖释放（4% 代币3天后一次性释放）
         vestingAllocations[2] = IVestingParams.VestingAllocation({
-            amount: 400,                          // 4% (基点)
-            launchTime: block.timestamp,          // 立即开始
-            duration: secondsInOneDay * 3,        // 悬崖期3天
+            amount: 400, // 4% (基点)
+            launchTime: block.timestamp, // 立即开始
+            duration: secondsInOneDay * 3, // 悬崖期3天
             mode: IVestingParams.VestingMode.CLIFF
         });
 
         // 构建创建参数
         IMEMECore.CreateTokenParams memory params;
-        params.name = "SteveToken";               // 代币名称
-        params.symbol = "Steve";                  // 代币符号
-        params.totalSupply = 1000000000 ether;    // 总供应量 10亿
-        params.saleAmount = 999000000 ether;      // 可售数量
-        params.virtualBNBReserve = 8219178082191780000;  // 虚拟 BNB 储备
-        params.virtualTokenReserve = 1073972602 ether;   // 虚拟代币储备
-        params.launchTime = block.timestamp;      // 启动时间
-        params.creator = deployer;                // 创建者地址
-        params.timestamp = block.timestamp;       // 请求时间戳
-        params.requestId = keccak256(abi.encodePacked("Test", block.timestamp, deployer));  // 请求ID
-        params.nonce = 1;                         // nonce
-        params.initialBuyPercentage = 900;        // 初始买入 9%
-        params.marginBnb = 1 ether;               // 保证金 1 BNB
-        params.marginTime = 0;                    // 保证金锁定时间
-        params.vestingAllocations = vestingAllocations;  // 归属计划
+        params.name = "SteveToken"; // 代币名称
+        params.symbol = "Steve"; // 代币符号
+        params.totalSupply = 1000000000 ether; // 总供应量 10亿
+        params.saleAmount = 999000000 ether; // 可售数量
+        params.virtualBNBReserve = 8219178082191780000; // 虚拟 BNB 储备
+        params.virtualTokenReserve = 1073972602 ether; // 虚拟代币储备
+        params.launchTime = block.timestamp; // 启动时间
+        params.creator = deployer; // 创建者地址
+        params.timestamp = block.timestamp; // 请求时间戳
+        params.requestId = keccak256(abi.encodePacked("Test", block.timestamp, deployer)); // 请求ID
+        params.nonce = 1; // nonce
+        params.initialBuyPercentage = 900; // 初始买入 9%
+        params.marginBnb = 1 ether; // 保证金 1 BNB
+        params.marginTime = 0; // 保证金锁定时间
+        params.vestingAllocations = vestingAllocations; // 归属计划
 
         // 签名参数
         bytes memory data = abi.encode(params);
@@ -352,19 +346,16 @@ contract TestCall is Deployer {
         // 计算所需支付金额
         uint256 creationFee = core.creationFee();
         (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = creationFee + initialBNB + params.marginBnb;
-        
+
         console.log("Creation fee:", creationFee);
         console.log("Initial BNB:", initialBNB);
         console.log("Pre-buy fee:", preBuyFee);
         console.log("Margin:", params.marginBnb);
         console.log("Total payment:", totalPayment);
-        
+
         // 创建代币
         tokenAddress = core.createToken{value: totalPayment}(data, signature);
         require(tokenAddress != address(0), "Create token failed");
@@ -387,11 +378,7 @@ contract TestCall is Deployer {
         uint256 deadline = block.timestamp + 300;
 
         // 执行买入
-        core.buy{value: bnbAmount}(
-            tokenAddress,
-            minTokenAmount,
-            deadline
-        );
+        core.buy{value: bnbAmount}(tokenAddress, minTokenAmount, deadline);
     }
 
     // ==================== PancakeSwap 操作函数 ====================
@@ -423,12 +410,7 @@ contract TestCall is Deployer {
 
         // 添加流动性
         (uint256 amountToken, uint256 amountETH, uint256 liquidity) = router.addLiquidityETH{value: bnbAmount}(
-            tokenAddress,
-            tokenAmount,
-            minTokenAmount,
-            minBNBAmount,
-            deadline,
-            false
+            tokenAddress, tokenAmount, minTokenAmount, minBNBAmount, deadline, false
         );
 
         console.log("Tokens added:", amountToken / 1e18);
@@ -446,31 +428,31 @@ contract TestCall is Deployer {
 
         IPancakeRouter02 router = IPancakeRouter02(cfg.Router());
         address wbnb = router.WETH();
-        
+
         // 获取交易对地址
         address pairAddress = IPancakeFactory(router.factory()).getPair(tokenAddress, wbnb);
         require(pairAddress != address(0), "Pair does not exist");
-        
+
         // 检查 LP 代币余额
         IPancakePair pair = IPancakePair(pairAddress);
         uint256 lpBalance = pair.balanceOf(liquidityProvider);
         require(lpBalance > 0, "No LP tokens to remove");
-        
+
         console.log("LP token balance:", lpBalance / 1e18);
-        
+
         // 授权并移除流动性
         pair.approve(address(router), lpBalance);
         uint256 deadline = block.timestamp + 300;
-        
+
         (uint256 amountToken, uint256 amountETH) = router.removeLiquidityETH(
             tokenAddress,
             lpBalance,
-            0,  // minTokenAmount
-            0,  // minBNBAmount
+            0, // minTokenAmount
+            0, // minBNBAmount
             liquidityProvider,
             deadline
         );
-        
+
         console.log("Tokens received:", amountToken);
         console.log("BNB received:", amountETH);
     }
@@ -503,12 +485,7 @@ contract TestCall is Deployer {
         uint256 deadline = block.timestamp + 300;
 
         // 执行买入
-        router.swapExactETHForTokens{value: bnbAmount}(
-            minTokenAmount,
-            path,
-            buyer,
-            deadline
-        );
+        router.swapExactETHForTokens{value: bnbAmount}(minTokenAmount, path, buyer, deadline);
 
         // 检查最终余额
         IERC20 token = IERC20(tokenAddress);
@@ -555,13 +532,7 @@ contract TestCall is Deployer {
         uint256 initialBNBBalance = seller.balance;
 
         // 执行卖出
-        router.swapExactTokensForETH(
-            tokenAmount,
-            minBNBAmount,
-            path,
-            seller,
-            deadline
-        );
+        router.swapExactTokensForETH(tokenAmount, minBNBAmount, path, seller, deadline);
 
         // 计算实际收到的 BNB
         uint256 finalBNBBalance = seller.balance;
@@ -650,10 +621,10 @@ contract TestCall is Deployer {
             console.log("Pair does not exist yet");
             return;
         }
-        
+
         IPancakePair pair = IPancakePair(pairAddress);
         (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
-        
+
         console.log("Pair address:", pairAddress);
         console.log("Reserve0:", reserve0 / 1e18);
         console.log("Reserve1:", reserve1 / 1e18);
@@ -668,16 +639,16 @@ contract TestCall is Deployer {
     function getLPTokenBalance(address tokenAddress) public view {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address user = vm.addr(deployerPrivateKey);
-        
+
         IPancakeRouter02 router = IPancakeRouter02(cfg.Router());
         address wbnb = router.WETH();
         address pairAddress = IPancakeFactory(router.factory()).getPair(tokenAddress, wbnb);
-        
+
         if (pairAddress == address(0)) {
             console.log("No LP tokens - pair does not exist");
             return;
         }
-        
+
         IPancakePair pair = IPancakePair(pairAddress);
         uint256 balance = pair.balanceOf(user);
         console.log("LP token balance:", balance / 1e18);

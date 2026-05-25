@@ -29,14 +29,9 @@ contract MockPancakeRouter {
 
     // The WETH address this router expects
     address public immutable WETH;
-    address public  factory;
+    address public factory;
 
-    event LiquidityAdded(
-        address indexed token,
-        uint256 amountTokenDesired,
-        uint256 amountETHDesired,
-        address to
-    );
+    event LiquidityAdded(address indexed token, uint256 amountTokenDesired, uint256 amountETHDesired, address to);
 
     constructor(address _weth) {
         factory = address(new MockPancakeFactory());
@@ -51,11 +46,7 @@ contract MockPancakeRouter {
     /**
      * @dev Set the desired return values for the next addLiquidityETH call.
      */
-    function setAddLiquidityETHReturnValues(
-        uint256 _amountToken,
-        uint256 _amountETH,
-        uint256 _liquidity
-    ) external {
+    function setAddLiquidityETHReturnValues(uint256 _amountToken, uint256 _amountETH, uint256 _liquidity) external {
         mockAmountToken = _amountToken;
         mockAmountETH = _amountETH;
         mockLiquidity = _liquidity;
@@ -84,15 +75,7 @@ contract MockPancakeRouter {
         uint256 amountETHMin,
         uint256 deadline,
         bool optOutUserShare
-    )
-    external
-    payable
-    returns (
-        uint256 amountToken,
-        uint256 amountETH,
-        uint256 liquidity
-    )
-    {
+    ) external payable returns (uint256 amountToken, uint256 amountETH, uint256 liquidity) {
         // Check if we should revert this call
         require(!shouldRevert, "MockPancakeRouter: Forced revert");
         require(deadline >= block.timestamp, "MockPancakeRouter: Expired");
@@ -117,25 +100,18 @@ contract MockPancakeRouter {
      * @dev Getter function to check all last call parameters at once.
      */
     function getLastAddLiquidityETHCall()
-    external
-    view
-    returns (
-        address token,
-        uint256 amountTokenDesired,
-        uint256 amountTokenMin,
-        uint256 amountETHMin,
-        address to,
-        uint256 deadline
-    )
+        external
+        view
+        returns (
+            address token,
+            uint256 amountTokenDesired,
+            uint256 amountTokenMin,
+            uint256 amountETHMin,
+            address to,
+            uint256 deadline
+        )
     {
-        return (
-            lastToken,
-            lastAmountTokenDesired,
-            lastAmountTokenMin,
-            lastAmountETHMin,
-            lastTo,
-            lastDeadline
-        );
+        return (lastToken, lastAmountTokenDesired, lastAmountTokenMin, lastAmountETHMin, lastTo, lastDeadline);
     }
 
     /**
@@ -177,16 +153,12 @@ contract MockPancakeFactory {
         (address token0, address token1) = _sortTokens(tokenA, tokenB);
         bytes32 salt = keccak256(abi.encodePacked(token0, token1));
 
-        bytes32 hash = keccak256(abi.encodePacked(
-            hex"ff",
-            address(this),
-            salt,
-            INIT_CODE_PAIR_HASH
-        ));
+        bytes32 hash = keccak256(abi.encodePacked(hex"ff", address(this), salt, INIT_CODE_PAIR_HASH));
 
         return address(uint160(uint256(hash)));
     }
-/**
+
+    /**
      * @dev Mock implementation of getPair.
      *      Now returns the CREATE2 address if pair was "created" or calculated.
      */

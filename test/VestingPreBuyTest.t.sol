@@ -74,11 +74,7 @@ contract VestingPreBuyTest is Test {
 
         // Deploy Vesting
         MEMEVesting vestingImpl = new MEMEVesting();
-        bytes memory vestingInitData = abi.encodeWithSelector(
-            MEMEVesting.initialize.selector,
-            admin,
-            address(core)
-        );
+        bytes memory vestingInitData = abi.encodeWithSelector(MEMEVesting.initialize.selector, admin, address(core));
         ERC1967Proxy vestingProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         vesting = MEMEVesting(address(vestingProxy));
 
@@ -104,11 +100,8 @@ contract VestingPreBuyTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // Calculate payment
-        (uint256 initialBNB,uint256 preBuyFee)  = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB + params.marginBnb;
 
@@ -116,12 +109,7 @@ contract VestingPreBuyTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         return factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
     }
 
@@ -188,10 +176,7 @@ contract VestingPreBuyTest is Test {
     function testCreateTokenWithCliffVesting() public {
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](1);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 5000,
-             launchTime: 0,
-            duration: secondsInOneDay,
-            mode: IVestingParams.VestingMode.CLIFF
+            amount: 5000, launchTime: 0, duration: secondsInOneDay, mode: IVestingParams.VestingMode.CLIFF
         });
 
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
@@ -234,14 +219,14 @@ contract VestingPreBuyTest is Test {
     function testCreateTokenWithMixedVesting() public {
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](2);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 3000,  // 30% cliff after 30 minutes
-             launchTime: 0,
+            amount: 3000, // 30% cliff after 30 minutes
+            launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.CLIFF
         });
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 6990,  // 60% linear over 1 hour
-             launchTime: 0,
+            amount: 6990, // 60% linear over 1 hour
+            launchTime: 0,
             duration: 172800,
             mode: IVestingParams.VestingMode.LINEAR
         });

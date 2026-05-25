@@ -37,7 +37,7 @@ contract DeployFactory is Script {
         // 从环境变量读取配置
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        address core = vm.envAddress("MEME_CORE_ADDRESS");  // Core 代理合约地址
+        address core = vm.envAddress("MEME_CORE_ADDRESS"); // Core 代理合约地址
 
         console.log("=== Deploying MEMEFactory ===");
         console.log("Deployer:", deployer);
@@ -53,7 +53,7 @@ contract DeployFactory is Script {
 
         // 授予 Core 合约 DEPLOYER_ROLE
         newFactory.grantRole(newFactory.DEPLOYER_ROLE(), core);
-        
+
         // 设置 Core 地址
         newFactory.setMetaNode(core);
 
@@ -70,7 +70,7 @@ contract DeployFactory is Script {
         console.log("1. Update Core contract to use new Factory:");
         console.log("   core.setFactory(newFactoryAddress)");
         console.log("2. Update deploy config with new Factory address");
-        
+
         return newImplementation;
     }
 }

@@ -51,14 +51,7 @@ contract BSCTest is Test {
 
         coreImpl = new MetaNodeCore();
         bytes memory coreInitData = abi.encodeWithSelector(
-            MetaNodeCore.initialize.selector,
-            address(factory),
-            address(helper),
-            signer,
-            admin,
-            admin,
-            admin,
-            admin
+            MetaNodeCore.initialize.selector, address(factory), address(helper), signer, admin, admin, admin, admin
         );
         ERC1967Proxy coreProxy = new ERC1967Proxy(address(coreImpl), coreInitData);
         core = MetaNodeCore(payable(address(coreProxy)));
@@ -70,7 +63,7 @@ contract BSCTest is Test {
         bytes memory vestingInitData = abi.encodeWithSelector(
             MEMEVesting.initialize.selector,
             admin,
-            address(core)  // Core proxy as operator
+            address(core) // Core proxy as operator
         );
         ERC1967Proxy vestProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         vesting = MEMEVesting(address(vestProxy));
@@ -105,10 +98,7 @@ contract BSCTest is Test {
         uint256 creationFee = core.creationFee();
         uint256 preBuyFeeRate = core.preBuyFeeRate();
         (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.saleAmount,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.saleAmount, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 preBuyFeeAmount = (initialBNB * preBuyFeeRate) / 10000;
         uint256 totalPayment = creationFee + initialBNB + preBuyFeeAmount;
@@ -117,12 +107,7 @@ contract BSCTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         token = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
     }
 
@@ -140,22 +125,23 @@ contract BSCTest is Test {
     function testTrueCall() public {
         createdToken = 0x84A9a2cc7AFe22D40C8111e36A9174E66903019f;
         core = MetaNodeCore(payable(address(0x51605F8D522f18A048F3C1C6d651B5238962acA6)));
-        bytes memory data = hex"000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000033b2e3c9fd0803ce80000000000000000000000000000000000000000000000033a5a7a8401b34f470000000000000000000000000000000000000000000000000000000429d069189e00000000000000000000000000000000000000000000033b2e3c9fd0803ce80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f380cf6a94bc2b72cf18341797fbd769a258fb960000000000000000000000000000000000000000000000000000000068f63fdf640908346d60c6fc1f39a0cf96d6a7a8f746812297f6919455a3bf48f72875d7000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000026ac00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000068f5f091000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000000034261690000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000342414900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-        bytes memory signature = hex"da7749920e3fcc156bb3e5efb0ad7445396941b1f02d482ca9acc8b3a717d3d5540de7f638457f7487725b06d0b89728fe971720f70b88f5347eeb1dad32c3c61c";
+        bytes memory data =
+            hex"000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000001e000000000000000000000000000000000000000000000000000000000000002200000000000000000000000000000000000000000033b2e3c9fd0803ce80000000000000000000000000000000000000000000000033a5a7a8401b34f470000000000000000000000000000000000000000000000000000000429d069189e00000000000000000000000000000000000000000000033b2e3c9fd0803ce80000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f380cf6a94bc2b72cf18341797fbd769a258fb960000000000000000000000000000000000000000000000000000000068f63fdf640908346d60c6fc1f39a0cf96d6a7a8f746812297f6919455a3bf48f72875d7000000000000000000000000000000000000000000000000000000000000000500000000000000000000000000000000000000000000000000000000000026ac00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000068f5f091000000000000000000000000000000000000000000000000000000000000026000000000000000000000000000000000000000000000000000000000000000034261690000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000342414900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+        bytes memory signature =
+            hex"da7749920e3fcc156bb3e5efb0ad7445396941b1f02d482ca9acc8b3a717d3d5540de7f638457f7487725b06d0b89728fe971720f70b88f5347eeb1dad32c3c61c";
         IMetaNodeCore.CreateTokenParams memory params = abi.decode(data, (IMetaNodeCore.CreateTokenParams));
         console.log(params.marginBnb);
         console.log(params.creator);
         console.log(params.initialBuyPercentage);
         console.log(params.virtualTokenReserve);
         console.log(params.virtualBNBReserve);
-//        uint256 chainId = 97;
-//        bytes32 messageHash = keccak256(abi.encodePacked(data, chainId, address(core)));
-//        address signerAddr = ECDSA.recover(messageHash, signature);
-//        address signerAddr = messageHash.recover(signature);
-//        console.log("signer:", signerAddr);
-//        IMetaNodeCore.TokenInfo memory info = core.getTokenInfo(createdToken);
-//        console.log(uint256(info.status));
-
+        //        uint256 chainId = 97;
+        //        bytes32 messageHash = keccak256(abi.encodePacked(data, chainId, address(core)));
+        //        address signerAddr = ECDSA.recover(messageHash, signature);
+        //        address signerAddr = messageHash.recover(signature);
+        //        console.log("signer:", signerAddr);
+        //        IMetaNodeCore.TokenInfo memory info = core.getTokenInfo(createdToken);
+        //        console.log(uint256(info.status));
     }
 
     function testGraduateToken() public {
@@ -177,7 +163,7 @@ contract BSCTest is Test {
         vm.stopPrank();
 
         info = core.getTokenInfo(createdToken);
-        assert(uint(info.status) == uint(IMetaNodeCore.TokenStatus.GRADUATED));
+        assert(uint256(info.status) == uint256(IMetaNodeCore.TokenStatus.GRADUATED));
     }
 
     function _calculateBNBNeededForTokens(address token, uint256 tokenAmount) internal view returns (uint256) {
@@ -204,7 +190,6 @@ contract BSCTest is Test {
         assertTrue(core.usedRequestIds(requestId), "Request ID should be marked as used");
     }
 
-
     function _createTokenWithFixedParams(
         uint256 timestamp,
         uint256 nonce,
@@ -228,7 +213,6 @@ contract BSCTest is Test {
         params.marginBnb = 0;
         params.marginTime = 0;
 
-
         bytes memory data = abi.encode(params);
         bytes32 messageHash = keccak256(abi.encodePacked(data, block.chainid, address(core)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_PRIVATE_KEY, messageHash);
@@ -237,10 +221,7 @@ contract BSCTest is Test {
         uint256 creationFee = core.creationFee();
         uint256 preBuyFeeRate = core.preBuyFeeRate();
         (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = creationFee + initialBNB;
 
@@ -248,12 +229,7 @@ contract BSCTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         token = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
     }
 

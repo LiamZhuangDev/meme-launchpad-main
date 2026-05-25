@@ -49,7 +49,7 @@ contract VanityAddressTest is Test {
         testNonces[3] = 10000;
         testNonces[4] = 54817; // A vanity nonce that should produce address ending in 4444
 
-        for (uint i = 0; i < testNonces.length; i++) {
+        for (uint256 i = 0; i < testNonces.length; i++) {
             uint256 nonce = testNonces[i];
 
             // Predict address
@@ -64,20 +64,11 @@ contract VanityAddressTest is Test {
 
             // Check if it's a vanity address (ends with 4444)
             bytes memory addrBytes = abi.encodePacked(predicted);
-            bool isVanity = (
-                uint8(addrBytes[18]) == 0x44 &&
-                uint8(addrBytes[19]) == 0x44
-            );
+            bool isVanity = (uint8(addrBytes[18]) == 0x44 && uint8(addrBytes[19]) == 0x44);
 
             // Actually deploy and verify
             vm.prank(coreContract);
-            address deployed = factory.deployToken(
-                TOKEN_NAME,
-                TOKEN_SYMBOL,
-                TOTAL_SUPPLY,
-                timestamp,
-                nonce
-            );
+            address deployed = factory.deployToken(TOKEN_NAME, TOKEN_SYMBOL, TOTAL_SUPPLY, timestamp, nonce);
         }
     }
 
@@ -88,14 +79,8 @@ contract VanityAddressTest is Test {
         uint256 foundNonce = 0;
         address foundAddress;
         for (uint256 nonce = 0; nonce < maxAttempts; nonce++) {
-            address predicted = factory.predictTokenAddress(
-                TOKEN_NAME,
-                TOKEN_SYMBOL,
-                TOTAL_SUPPLY,
-                coreContract,
-                timestamp,
-                nonce
-            );
+            address predicted =
+                factory.predictTokenAddress(TOKEN_NAME, TOKEN_SYMBOL, TOTAL_SUPPLY, coreContract, timestamp, nonce);
 
             // Check last 2 bytes (4 hex chars)
             bytes memory addrBytes = abi.encodePacked(predicted);
@@ -119,13 +104,7 @@ contract VanityAddressTest is Test {
 
             // Deploy and verify
             vm.prank(coreContract);
-            address deployed = factory.deployToken(
-                TOKEN_NAME,
-                TOKEN_SYMBOL,
-                TOTAL_SUPPLY,
-                timestamp,
-                foundNonce
-            );
+            address deployed = factory.deployToken(TOKEN_NAME, TOKEN_SYMBOL, TOTAL_SUPPLY, timestamp, foundNonce);
 
             assertEq(deployed, foundAddress, "Deployed should match predicted vanity address");
             console.log("  Deployed:", deployed);

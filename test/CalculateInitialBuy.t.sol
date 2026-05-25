@@ -58,11 +58,11 @@ contract CalculateInitialBuyTest is Test {
 
     function testCalculateInitialBuyBNB() public view {
         // Test case 1: 0% should return 0
-        (uint256 bnbRequired,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            800000 ether,  // saleAmount
-            1 ether,         // virtualBNBReserve
-            800000 ether,  // virtualTokenReserve
-            0                // 0%
+        (uint256 bnbRequired, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            800000 ether, // saleAmount
+            1 ether, // virtualBNBReserve
+            800000 ether, // virtualTokenReserve
+            0 // 0%
         );
         assertEq(bnbRequired, 0);
 
@@ -71,7 +71,7 @@ contract CalculateInitialBuyTest is Test {
             800000 ether,
             1 ether,
             800000 ether,
-            1000  // 10%
+            1000 // 10%
         );
 
         // Calculate expected: 10% of 800000 = 80000 tokens
@@ -94,7 +94,7 @@ contract CalculateInitialBuyTest is Test {
             800000 ether,
             virtualBNBReserve,
             800000 ether,
-            5000  // 50%
+            5000 // 50%
         );
 
         // 50% of 800000 = 400000 tokens
@@ -109,7 +109,7 @@ contract CalculateInitialBuyTest is Test {
             800000 ether,
             1 ether,
             800000 ether,
-            9990  // 99.9%
+            9990 // 99.9%
         );
 
         k = 1 ether * 800000 ether;
@@ -124,11 +124,11 @@ contract CalculateInitialBuyTest is Test {
 
     function testCalculateWithDifferentReserves() public view {
         // Test with different virtual reserves
-        (uint256 bnbRequired,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            1000000 ether,  // saleAmount
-            5 ether,          // virtualBNBReserve
-            1000000 ether,  // virtualTokenReserve
-            2500              // 25%
+        (uint256 bnbRequired, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            1000000 ether, // saleAmount
+            5 ether, // virtualBNBReserve
+            1000000 ether, // virtualTokenReserve
+            2500 // 25%
         );
 
         // 25% of 1000000 = 250000 tokens
@@ -153,7 +153,7 @@ contract CalculateInitialBuyTest is Test {
             800000 ether,
             1 ether,
             800000 ether,
-            10000  // 100%
+            10000 // 100%
         );
 
         vm.expectRevert(IMetaNodeCore.InvalidParameters.selector);
@@ -161,19 +161,15 @@ contract CalculateInitialBuyTest is Test {
             800000 ether,
             1 ether,
             800000 ether,
-            9991  // 99.91%
+            9991 // 99.91%
         );
     }
 
     function testGasEfficiency() public view {
         // Test that the function is gas efficient (should be view/pure)
         uint256 virtualBNBReserve = 1 ether;
-        (uint256 result,uint256 preBuyFee)= core.calculateInitialBuyBNB(
-            800000 ether,
-            virtualBNBReserve,
-            800000 ether,
-            5000
-        );
+        (uint256 result, uint256 preBuyFee) =
+            core.calculateInitialBuyBNB(800000 ether, virtualBNBReserve, 800000 ether, 5000);
 
         // Just verify it returns a reasonable value
         // The fact that this is a view function proves it's gas efficient
@@ -191,12 +187,8 @@ contract CalculateInitialBuyTest is Test {
         uint256 virtualBNBReserve = 1 ether;
         uint256 virtualTokenReserve = 1000000 ether;
 
-        (uint256 bnbRequired,uint256 preBuyFee)= core.calculateInitialBuyBNB(
-            saleAmount,
-            virtualBNBReserve,
-            virtualTokenReserve,
-            percentageBP
-        );
+        (uint256 bnbRequired, uint256 preBuyFee) =
+            core.calculateInitialBuyBNB(saleAmount, virtualBNBReserve, virtualTokenReserve, percentageBP);
 
         if (percentageBP == 0) {
             assertEq(bnbRequired, 0);
@@ -206,12 +198,8 @@ contract CalculateInitialBuyTest is Test {
 
             // Higher percentage should require more BNB
             if (percentageBP < 9990) {
-                (uint256 higherBNB,uint256 preBuyFeeVal) = core.calculateInitialBuyBNB(
-                    saleAmount,
-                    virtualBNBReserve,
-                    virtualTokenReserve,
-                    percentageBP + 1
-                );
+                (uint256 higherBNB, uint256 preBuyFeeVal) =
+                    core.calculateInitialBuyBNB(saleAmount, virtualBNBReserve, virtualTokenReserve, percentageBP + 1);
                 assertGt(higherBNB, bnbRequired);
             }
         }

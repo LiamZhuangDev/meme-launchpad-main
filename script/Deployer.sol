@@ -40,33 +40,33 @@ struct Deployment {
 
 abstract contract Deployer is Script {
     // ============ 部署记录存储 ============
-    
+
     /// @notice 按名称索引的部署记录映射
     mapping(string => Deployment) internal _namedDeployments;
-    
+
     /// @notice 本次执行的所有新部署记录数组
     Deployment[] internal _newDeployments;
-    
+
     // ============ 路径配置 ============
-    
+
     /// @notice 部署上下文（网络别名），可通过 DEPLOYMENT_CONTEXT 环境变量设置
     string internal deploymentContext;
-    
+
     /// @notice 项目名称前缀（如 "bnb/"、"xlayer_test/"）
     string internal projectName;
-    
+
     /// @notice 环境名称（dev/test/pre/prod）
     string internal environment;
-    
+
     /// @notice forge 生成的部署产物路径
     string internal deployPath;
-    
+
     /// @notice 部署记录目录路径
     string internal deploymentsDir;
-    
+
     /// @notice 部署脚本名称，可通过 DEPLOY_SCRIPT 环境变量设置
     string internal deployScript;
-    
+
     /// @notice 临时部署记录文件路径
     string internal tempDeploymentsPath;
 
@@ -74,24 +74,22 @@ abstract contract Deployer is Script {
     Chains chainContract;
 
     // ============ 错误定义 ============
-    
+
     /// @notice 请求的部署记录不存在
     error DeploymentDoesNotExist(string);
-    
+
     /// @notice 无效的部署（名称为空或已存在）
     error InvalidDeployment(string);
 
     // ============ EIP-1967 存储槽 ============
-    
+
     /// @notice 实现合约地址存储槽
     /// @dev bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1)
-    bytes32 internal constant IMPLEMENTATION_KEY =
-        0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
-    
+    bytes32 internal constant IMPLEMENTATION_KEY = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
+
     /// @notice 代理管理员地址存储槽
     /// @dev bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1)
-    bytes32 internal constant OWNER_KEY =
-        0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+    bytes32 internal constant OWNER_KEY = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
 
     /**
      * @notice 初始化部署器
@@ -106,11 +104,7 @@ abstract contract Deployer is Script {
         uint256 chainId = vm.envOr("CHAIN_ID", block.chainid);
 
         // 设置部署记录目录
-        deploymentsDir = string.concat(
-            root,
-            "/deployments/",
-            deploymentContext
-        );
+        deploymentsDir = string.concat(root, "/deployments/", deploymentContext);
 
         // 创建部署目录（如果不存在）
         try vm.createDir(deploymentsDir, true) {} catch (bytes memory) {}
@@ -119,10 +113,7 @@ abstract contract Deployer is Script {
         string memory chainIdPath = string.concat(deploymentsDir, "/.chainId");
         try vm.readFile(chainIdPath) returns (string memory localChainId) {
             if (vm.envOr("STRICT_DEPLOYMENT", true)) {
-                require(
-                    vm.parseUint(localChainId) == chainId,
-                    "Misconfigured networks"
-                );
+                require(vm.parseUint(localChainId) == chainId, "Misconfigured networks");
             }
         } catch {
             vm.writeFile(chainIdPath, vm.toString(chainId));
@@ -130,14 +121,11 @@ abstract contract Deployer is Script {
         console.log("Connected to network with chainid %s", chainId);
 
         // 设置临时部署记录文件路径
-        tempDeploymentsPath = string.concat(
-            deploymentsDir,"/",
-            environment,
-            ".json"
-        );
-        
+        tempDeploymentsPath = string.concat(deploymentsDir, "/", environment, ".json");
+
         // 初始化部署记录文件（如果不存在）
-        try vm.readFile(tempDeploymentsPath) returns (string memory) {} catch {
+        try vm.readFile(tempDeploymentsPath) returns (string memory) {}
+        catch {
             vm.writeJson("{}", tempDeploymentsPath);
         }
         console.log("Storing temp deployment data in %s", tempDeploymentsPath);
@@ -171,9 +159,7 @@ abstract contract Deployer is Script {
      * @param _name 合约名称
      * @return 合约地址（不存在时返回 address(0)）
      */
-    function getAddress(
-        string memory _name
-    ) public view returns (address payable) {
+    function getAddress(string memory _name) public view returns (address payable) {
         Deployment memory existing = _namedDeployments[_name];
         if (existing.addr != address(0)) {
             if (bytes(existing.name).length == 0) {
@@ -189,9 +175,7 @@ abstract contract Deployer is Script {
      * @param _name 合约名称
      * @return 合约地址
      */
-    function mustGetAddress(
-        string memory _name
-    ) public view returns (address payable) {
+    function mustGetAddress(string memory _name) public view returns (address payable) {
         address addr = getAddress(_name);
         if (addr == address(0)) {
             revert DeploymentDoesNotExist(_name);
@@ -229,10 +213,7 @@ abstract contract Deployer is Script {
             revert InvalidDeployment("AlreadyExists");
         }
 
-        Deployment memory deployment = Deployment({
-            name: _name,
-            addr: payable(_deployed)
-        });
+        Deployment memory deployment = Deployment({name: _name, addr: payable(_deployed)});
         _namedDeployments[_name] = deployment;
         _newDeployments.push(deployment);
         _writeTemp(_name, _deployed);
@@ -245,9 +226,7 @@ abstract contract Deployer is Script {
      * @param _deployTx 部署交易 JSON 字符串
      * @return 合约名称
      */
-    function _getContractNameFromDeployTransaction(
-        string memory _deployTx
-    ) internal pure returns (string memory) {
+    function _getContractNameFromDeployTransaction(string memory _deployTx) internal pure returns (string memory) {
         return stdJson.readString(_deployTx, ".contractName");
     }
 
@@ -260,16 +239,11 @@ abstract contract Deployer is Script {
         if (_getExistingDeploymentAddress(_name) != address(0)) {
             // 更新已存在的记录
             vm.writeJson({
-                json: vm.toString(_deployed),
-                path: tempDeploymentsPath,
-                valueKey: string.concat("$.", _name)
+                json: vm.toString(_deployed), path: tempDeploymentsPath, valueKey: string.concat("$.", _name)
             });
         } else {
             // 添加新记录
-            vm.writeJson({
-                json: stdJson.serialize("", _name, _deployed),
-                path: tempDeploymentsPath
-            });
+            vm.writeJson({json: stdJson.serialize("", _name, _deployed), path: tempDeploymentsPath});
         }
     }
 
@@ -278,9 +252,7 @@ abstract contract Deployer is Script {
      * @param chainid 链 ID
      * @return 网络别名（如 "bnb"、"bnb_test"）
      */
-    function _getDeploymentContext (
-        uint256 chainid
-    ) internal view returns (string memory) {
+    function _getDeploymentContext(uint256 chainid) internal view returns (string memory) {
         // 优先使用环境变量
         string memory context = vm.envOr("DEPLOYMENT_CONTEXT", string(""));
         if (bytes(context).length > 0) {
@@ -295,9 +267,7 @@ abstract contract Deployer is Script {
      * @param _name 合约名称
      * @return 合约地址
      */
-    function _getExistingDeploymentAddress(
-        string memory _name
-    ) internal view returns (address payable) {
+    function _getExistingDeploymentAddress(string memory _name) internal view returns (address payable) {
         return _getExistingDeployment(_name).addr;
     }
 
@@ -306,15 +276,10 @@ abstract contract Deployer is Script {
      * @param _name 合约名称
      * @return 部署记录结构体
      */
-    function _getExistingDeployment(
-        string memory _name
-    ) internal view returns (Deployment memory) {
+    function _getExistingDeployment(string memory _name) internal view returns (Deployment memory) {
         string memory path = tempDeploymentsPath;
         try vm.readFile(path) returns (string memory json) {
-            bytes memory addr = stdJson.parseRaw(
-                json,
-                string.concat("$.", _name)
-            );
+            bytes memory addr = stdJson.parseRaw(json, string.concat("$.", _name));
             address payable newAddr;
             if (addr.length == 0) {
                 newAddr = payable(address(0));
@@ -337,7 +302,6 @@ abstract contract Deployer is Script {
      * @return 是否为零地址
      */
     function isZeroAddress(address addr_) public pure returns (bool) {
-        return
-            addr_ == address(32) || addr_ == address(0) || addr_ == address(64);
+        return addr_ == address(32) || addr_ == address(0) || addr_ == address(64);
     }
 }

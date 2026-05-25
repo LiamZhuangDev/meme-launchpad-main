@@ -70,7 +70,6 @@ contract ComprehensiveFeeTest is Test {
         factory.setMetaNode(address(core));
         helper.grantRole(helper.CORE_ROLE(), address(core));
 
-
         signer = vm.addr(signerPrivateKey);
         core.grantRole(core.SIGNER_ROLE(), signer);
 
@@ -78,7 +77,7 @@ contract ComprehensiveFeeTest is Test {
         bytes memory vestingInitData = abi.encodeWithSelector(
             MEMEVesting.initialize.selector,
             admin,
-            address(core)  // Core proxy as operator
+            address(core) // Core proxy as operator
         );
         ERC1967Proxy vestProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         vesting = MEMEVesting(address(vestProxy));
@@ -113,10 +112,7 @@ contract ComprehensiveFeeTest is Test {
 
         // Calculate expected amounts
         (uint256 expectedTokens, uint256 expectedBNB) = calculateExpectedInitialBuy(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, initialBuyPercentage
         );
 
         uint256 preBuyFee = (expectedBNB * core.preBuyFeeRate()) / 10000;
@@ -162,10 +158,7 @@ contract ComprehensiveFeeTest is Test {
         });
 
         (uint256 expectedTokens, uint256 expectedBNB) = calculateExpectedInitialBuy(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, initialBuyPercentage
         );
 
         uint256 preBuyFee = (expectedBNB * core.preBuyFeeRate()) / 10000;
@@ -217,12 +210,7 @@ contract ComprehensiveFeeTest is Test {
         core.createToken{value: core.creationFee()}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         address buyer = makeAddr("buyer");
@@ -259,16 +247,10 @@ contract ComprehensiveFeeTest is Test {
         // Test vesting allocations exceeding 100%
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](2);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 6000,
-            launchTime: 0,
-            duration: secondsInOneDay,
-            mode: IVestingParams.VestingMode.LINEAR
+            amount: 6000, launchTime: 0, duration: secondsInOneDay, mode: IVestingParams.VestingMode.LINEAR
         });
-        vestingAllocations[1] =  IVestingParams.VestingAllocation({
-            amount: 5000,
-            launchTime: 0,
-            duration: secondsInOneDay,
-            mode: IVestingParams.VestingMode.LINEAR
+        vestingAllocations[1] = IVestingParams.VestingAllocation({
+            amount: 5000, launchTime: 0, duration: secondsInOneDay, mode: IVestingParams.VestingMode.LINEAR
         });
 
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
@@ -294,11 +276,8 @@ contract ComprehensiveFeeTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee)= core.calculateInitialBuyBNB(
-            params.saleAmount,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.saleAmount, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 preBuyFeeVal = (initialBNB * core.preBuyFeeRate()) / 10000;
         uint256 totalPayment = core.creationFee() + initialBNB + preBuyFeeVal;
@@ -365,10 +344,7 @@ contract ComprehensiveFeeTest is Test {
         });
 
         (uint256 expectedTokens, uint256 expectedBNB) = calculateExpectedInitialBuy(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
 
         uint256 totalPayment = core.creationFee() + expectedBNB; // No preBuyFee
@@ -433,10 +409,7 @@ contract ComprehensiveFeeTest is Test {
         });
 
         (uint256 expectedTokens, uint256 expectedBNB) = calculateExpectedInitialBuy(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            percentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, percentage
         );
 
         uint256 preBuyFee = (expectedBNB * core.preBuyFeeRate()) / 10000;
@@ -452,12 +425,7 @@ contract ComprehensiveFeeTest is Test {
 
         // Verify token was created successfully
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         assertTrue(tokenAddress != address(0), "Token should be created");

@@ -38,7 +38,7 @@ contract DeployNewCoreImpl is Script {
         // 从环境变量读取部署者私钥
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerPrivateKey);
-        
+
         vm.startBroadcast(deployerPrivateKey);
 
         // 打印部署信息
@@ -51,7 +51,7 @@ contract DeployNewCoreImpl is Script {
         console.log("Deploying MEMECore implementation...");
         MetaNodeCore newCoreImpl = new MetaNodeCore();
         newImplementation = address(newCoreImpl);
-        
+
         console.log("New MEMECore implementation deployed at:", newImplementation);
         console.log("");
 
@@ -67,7 +67,7 @@ contract DeployNewCoreImpl is Script {
         console.log("2. Use the admin/multisig to upgrade the proxy to this new implementation");
         console.log("   proxy.upgradeToAndCall(newImplementation, '')");
         console.log("3. Test the upgraded functionality on testnet first");
-        
+
         return newImplementation;
     }
 }

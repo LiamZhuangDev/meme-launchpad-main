@@ -73,7 +73,7 @@ contract MarginDepositTest is Test {
         vm.startPrank(admin);
         factory.setMetaNode(address(core));
 
-        // Grant CORE_ROLE to core  
+        // Grant CORE_ROLE to core
         helper.grantRole(helper.CORE_ROLE(), address(core));
         vm.stopPrank();
 
@@ -139,8 +139,8 @@ contract MarginDepositTest is Test {
             requestId: keccak256("test-request-no-margin"),
             nonce: 2,
             initialBuyPercentage: 0,
-            marginBnb: 0,  // No margin
-            marginTime: 0,   // No lock time
+            marginBnb: 0, // No margin
+            marginTime: 0, // No lock time
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
         });
 
@@ -193,7 +193,8 @@ contract MarginDepositTest is Test {
         // Calculate initial buy cost using bonding curve formula
         uint256 initialBuyTokens = (params.totalSupply * initialBuyPercent) / 10000;
         // Using x * y = k formula: cost = (tokenAmount * virtualBNBReserve) / (virtualTokenReserve - tokenAmount)
-        uint256 initialBuyCost = (initialBuyTokens * params.virtualBNBReserve) / (params.virtualTokenReserve - initialBuyTokens);
+        uint256 initialBuyCost =
+            (initialBuyTokens * params.virtualBNBReserve) / (params.virtualTokenReserve - initialBuyTokens);
 
         // Record balances before
         uint256 marginReceiverBalanceBefore = marginReceiver.balance;
@@ -236,10 +237,5 @@ contract MarginDepositTest is Test {
     }
 
     // Event definitions for testing
-    event MarginDeposited(
-        address indexed token,
-        address indexed creator,
-        uint256 marginAmount,
-        uint256 lockTime
-    );
+    event MarginDeposited(address indexed token, address indexed creator, uint256 marginAmount, uint256 lockTime);
 }

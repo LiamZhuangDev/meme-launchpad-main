@@ -53,18 +53,10 @@ contract VestingTest is Test {
     uint256 public secondsInOneDay = 86400;
 
     event VestingCreated(
-        address indexed token,
-        address indexed beneficiary,
-        uint256 totalVestedAmount,
-        uint256 scheduleCount
+        address indexed token, address indexed beneficiary, uint256 totalVestedAmount, uint256 scheduleCount
     );
 
-    event TokensClaimed(
-        address indexed token,
-        address indexed beneficiary,
-        uint256 scheduleId,
-        uint256 amount
-    );
+    event TokensClaimed(address indexed token, address indexed beneficiary, uint256 scheduleId, uint256 amount);
 
     function setUp() public {
         // Derive signer address from private key
@@ -96,11 +88,7 @@ contract VestingTest is Test {
 
         // Deploy and initialize Vesting
         vestingImpl = new MEMEVesting();
-        bytes memory vestingInitData = abi.encodeWithSelector(
-            MEMEVesting.initialize.selector,
-            admin,
-            address(core)
-        );
+        bytes memory vestingInitData = abi.encodeWithSelector(MEMEVesting.initialize.selector, admin, address(core));
         ERC1967Proxy vestingProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         vesting = MEMEVesting(address(vestingProxy));
 
@@ -120,19 +108,16 @@ contract VestingTest is Test {
     function testCreateTokenWithVesting() public {
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](3);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 4000,
-            launchTime: 0,
-            duration: secondsInOneDay,
-            mode: IVestingParams.VestingMode.LINEAR
+            amount: 4000, launchTime: 0, duration: secondsInOneDay, mode: IVestingParams.VestingMode.LINEAR
         });
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 3000,  // 30%
+            amount: 3000, // 30%
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
         });
         vestingAllocations[2] = IVestingParams.VestingAllocation({
-            amount: 2000,  // 20%
+            amount: 2000, // 20%
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
@@ -163,11 +148,8 @@ contract VestingTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         // Calculate required payment
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -180,7 +162,7 @@ contract VestingTest is Test {
         // Create token with vesting
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](1);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 9000,  // 100% vested
+            amount: 9000, // 100% vested
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
@@ -209,11 +191,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -223,12 +202,7 @@ contract VestingTest is Test {
         // Get token address (we need to predict it or get it from events)
         // For simplicity, we'll get the last created token
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Check initial state - no tokens claimable immediately
@@ -294,11 +268,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -306,12 +277,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Verify total supply is reduced by burned amount
@@ -320,27 +286,17 @@ contract VestingTest is Test {
         assertEq(finalSupply, expectedSupply, "Total supply should be reduced by burned amount");
     }
 
-
     function testMultipleVestingSchedules() public {
         // Create token with multiple vesting schedules
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](3);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 300,
-            launchTime: 0,
-            duration: secondsInOneDay,
-            mode: IVestingParams.VestingMode.BURN
+            amount: 300, launchTime: 0, duration: secondsInOneDay, mode: IVestingParams.VestingMode.BURN
         });
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 200,
-            launchTime: 0,
-            duration: secondsInOneDay * 2,
-            mode: IVestingParams.VestingMode.LINEAR
+            amount: 200, launchTime: 0, duration: secondsInOneDay * 2, mode: IVestingParams.VestingMode.LINEAR
         });
         vestingAllocations[2] = IVestingParams.VestingAllocation({
-            amount: 400,
-            launchTime: 0,
-            duration: secondsInOneDay * 3,
-            mode: IVestingParams.VestingMode.CLIFF
+            amount: 400, launchTime: 0, duration: secondsInOneDay * 3, mode: IVestingParams.VestingMode.CLIFF
         });
 
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
@@ -366,11 +322,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -378,12 +331,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Check schedule count
@@ -397,7 +345,7 @@ contract VestingTest is Test {
         uint256 claimable1 = vesting.getClaimableAmount(tokenAddress, creator, 1);
         uint256 claimable2 = vesting.getClaimableAmount(tokenAddress, creator, 2);
 
-        uint256 schedule1Amount = (params.totalSupply * 200) / 10000; 
+        uint256 schedule1Amount = (params.totalSupply * 200) / 10000;
         uint256 schedule2Amount = (params.totalSupply * 400) / 10000;
 
         // First schedule should be fully vested
@@ -417,22 +365,13 @@ contract VestingTest is Test {
         // Create token with multiple vesting schedules
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](3);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 500,
-            launchTime: 0,
-            duration: 86400,
-            mode: IVestingParams.VestingMode.CLIFF
+            amount: 500, launchTime: 0, duration: 86400, mode: IVestingParams.VestingMode.CLIFF
         });
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 300,
-            launchTime: 0,
-            duration: 1728000,
-            mode: IVestingParams.VestingMode.CLIFF
+            amount: 300, launchTime: 0, duration: 1728000, mode: IVestingParams.VestingMode.CLIFF
         });
         vestingAllocations[2] = IVestingParams.VestingAllocation({
-            amount: 200,
-            launchTime: 0,
-            duration: 0,
-            mode: IVestingParams.VestingMode.BURN
+            amount: 200, launchTime: 0, duration: 0, mode: IVestingParams.VestingMode.BURN
         });
 
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
@@ -458,11 +397,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -470,12 +406,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Check schedule count
@@ -489,8 +420,8 @@ contract VestingTest is Test {
         uint256 claimable1 = vesting.getClaimableAmount(tokenAddress, creator, 1);
         uint256 claimable2 = vesting.getClaimableAmount(tokenAddress, creator, 2);
 
-        uint256 schedule0Amount = (params.totalSupply * 500) / 10000; 
-        uint256 schedule1Amount = (params.totalSupply * 300) / 10000; 
+        uint256 schedule0Amount = (params.totalSupply * 500) / 10000;
+        uint256 schedule1Amount = (params.totalSupply * 300) / 10000;
         uint256 schedule2Amount = (params.totalSupply * 200) / 10000;
 
         // First schedule should be fully vested
@@ -508,7 +439,7 @@ contract VestingTest is Test {
         // Create token with 50% vested, 50% immediate
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](1);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 5000,  // 50% vested
+            amount: 5000, // 50% vested
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
@@ -537,11 +468,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -550,12 +478,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Creator should have received 50% immediately
@@ -565,7 +488,12 @@ contract VestingTest is Test {
         uint256 immediateTokens = totalInitialTokens - vestAmount; // 50% immediate
 
         assertApproxEqAbs(vestingSchedule.totalAmount, vestAmount, 1 ether, "Creator should have 50% tokens vest");
-        assertApproxEqAbs(MetaNodeToken(tokenAddress).balanceOf(creator), immediateTokens, 1 ether, "Creator should have 30% tokens immediately");
+        assertApproxEqAbs(
+            MetaNodeToken(tokenAddress).balanceOf(creator),
+            immediateTokens,
+            1 ether,
+            "Creator should have 30% tokens immediately"
+        );
 
         // Check vesting contract has the other 50%
         uint256 vestingBalance = MetaNodeToken(tokenAddress).balanceOf(address(vesting));
@@ -576,7 +504,7 @@ contract VestingTest is Test {
         // Create token without initial buy - vesting should not apply
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](1);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 10000,  // 100% vested (but no initial buy)
+            amount: 10000, // 100% vested (but no initial buy)
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
@@ -609,12 +537,7 @@ contract VestingTest is Test {
         core.createToken{value: core.creationFee()}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // No vesting schedules should exist
@@ -630,13 +553,13 @@ contract VestingTest is Test {
         // Test with vesting allocations exceeding 100%
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](2);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 6000,  // 60%
+            amount: 6000, // 60%
             launchTime: 0,
             duration: 1200,
             mode: IVestingParams.VestingMode.LINEAR
         });
         vestingAllocations[1] = IVestingParams.VestingAllocation({
-            amount: 5000,  // 50% - total 110%
+            amount: 5000, // 50% - total 110%
             launchTime: 0,
             duration: secondsInOneDay,
             mode: IVestingParams.VestingMode.LINEAR
@@ -665,11 +588,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -682,10 +602,7 @@ contract VestingTest is Test {
     function testMinLockTimeValidation() public {
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](1);
         vestingAllocations[0] = IVestingParams.VestingAllocation({
-            amount: 9000,
-            launchTime: 0,
-            duration: 3600,
-            mode: IVestingParams.VestingMode.LINEAR
+            amount: 9000, launchTime: 0, duration: 3600, mode: IVestingParams.VestingMode.LINEAR
         });
 
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
@@ -711,11 +628,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -771,11 +685,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -783,12 +694,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Verify vesting schedules have correct start times
@@ -809,7 +715,6 @@ contract VestingTest is Test {
         IMEMEVesting.VestingSchedule memory schedule2 = vesting.getVestingSchedule(tokenAddress, creator, 2);
         assertEq(schedule2.startTime, futureLaunchTime, "Schedule 2 should start 2 days after launch");
         assertEq(schedule2.endTime, futureLaunchTime + secondsInOneDay * 3, "Schedule 0 should end at launch time");
-
     }
 
     function testLinearUnlockAfterOneDay() public {
@@ -847,11 +752,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -859,12 +761,7 @@ contract VestingTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Before launch time - no tokens claimable
@@ -918,12 +815,7 @@ contract VestingTest is Test {
         core.createToken{value: core.creationFee()}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Simulate trading to collect BNB
@@ -949,7 +841,7 @@ contract VestingTest is Test {
         uint256 totalCollectedBNB = curve.collectedBNB;
 
         uint256 expectedPlatformBNB = (totalCollectedBNB * 550) / 10000; // 5.5%
-        uint256 expectedCreatorBNB = (totalCollectedBNB * 250) / 10000;  // 2.5%
+        uint256 expectedCreatorBNB = (totalCollectedBNB * 250) / 10000; // 2.5%
 
         uint256 platformBNBReceived = platformFeeReceiver.balance - platformBalanceBefore;
         uint256 creatorBNBReceived = creator.balance - creatorBalanceBefore;
@@ -965,13 +857,12 @@ contract VestingTest is Test {
         virtualBNBReserves[2] = 3.03 ether;
         virtualBNBReserves[3] = 6.06 ether;
 
-
         for (uint256 i = 0; i < virtualBNBReserves.length; i++) {
             IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
                 name: string(abi.encodePacked("Pool Test ", i)),
                 symbol: string(abi.encodePacked("POOL", i)),
                 totalSupply: 1000000000 ether, // 1B tokens
-                saleAmount: 800000000 ether,   // 800M for sale
+                saleAmount: 800000000 ether, // 800M for sale
                 virtualBNBReserve: virtualBNBReserves[i],
                 virtualTokenReserve: 800000000 ether,
                 launchTime: 0,
@@ -994,12 +885,7 @@ contract VestingTest is Test {
             core.createToken{value: core.creationFee()}(data, signature);
 
             address tokenAddress = factory.predictTokenAddress(
-                params.name,
-                params.symbol,
-                params.totalSupply,
-                address(core),
-                params.timestamp,
-                params.nonce
+                params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
             );
             // Verify opening price calculation
             IMetaNodeCore.BondingCurveParams memory curve = core.getBondingCurve(tokenAddress);
@@ -1042,12 +928,7 @@ contract VestingTest is Test {
         core.createToken{value: core.creationFee()}(data, signature);
 
         address tokenAddress = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
 
         // Simulate trading to collect BNB
@@ -1073,7 +954,7 @@ contract VestingTest is Test {
         uint256 totalCollectedBNB = curve.collectedBNB;
 
         uint256 expectedPlatformBNB = (totalCollectedBNB * 550) / 10000; // 5.5%
-        uint256 expectedCreatorBNB = (totalCollectedBNB * 250) / 10000;  // 2.5%
+        uint256 expectedCreatorBNB = (totalCollectedBNB * 250) / 10000; // 2.5%
 
         uint256 platformBNBReceived = platformFeeReceiver.balance - platformBalanceBefore;
         uint256 creatorBNBReceived = creator.balance - creatorBalanceBefore;
@@ -1088,7 +969,12 @@ contract VestingTest is Test {
         testPoolRatioCreation("PoolRatioCreation2", 20 ether, true, "Maximum pool ratio should work");
     }
 
-    function testPoolRatioCreation(string memory name, uint256 virtualBNBReserve, bool shouldSucceed, string memory message) internal {
+    function testPoolRatioCreation(
+        string memory name,
+        uint256 virtualBNBReserve,
+        bool shouldSucceed,
+        string memory message
+    ) internal {
         IMetaNodeCore.CreateTokenParams memory params = IMetaNodeCore.CreateTokenParams({
             name: name,
             symbol: "BOUND",
@@ -1117,12 +1003,7 @@ contract VestingTest is Test {
             core.createToken{value: core.creationFee()}(data, signature);
             // Verify token was created
             address tokenAddress = factory.predictTokenAddress(
-                params.name,
-                params.symbol,
-                params.totalSupply,
-                address(core),
-                params.timestamp,
-                params.nonce
+                params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
             );
             assertTrue(tokenAddress != address(0), message);
         } else {
@@ -1160,11 +1041,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = core.creationFee() + initialBNB;
 
@@ -1172,12 +1050,7 @@ contract VestingTest is Test {
         if (shouldSucceed) {
             core.createToken{value: totalPayment}(data, signature);
             address tokenAddress = factory.predictTokenAddress(
-                params.name,
-                params.symbol,
-                params.totalSupply,
-                address(core),
-                params.timestamp,
-                params.nonce
+                params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
             );
             assertTrue(tokenAddress != address(0), message);
         } else {
@@ -1230,11 +1103,8 @@ contract VestingTest is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, messageHash);
         bytes memory signature = abi.encodePacked(r, s, v);
 
-        (uint256 initialBNB,uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = newCreationFee + initialBNB;
 

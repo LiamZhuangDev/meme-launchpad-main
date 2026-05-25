@@ -11,7 +11,7 @@ import {MetaNodeCore} from "../src/MEMECore.sol";
 contract GrantSignerRole is Script {
     // 合约地址 (BSC Testnet)
     MetaNodeCore public core = MetaNodeCore(payable(0x69207F321CFDfd30D73D1d9278e4132E15080ec9));
-    
+
     // 签名者地址（从私钥 c3403525339818ca6d633b409c2f8e31d24250b303f97311b3e2b3bc73516c1f 推导）
     address public signer = 0x5A7157d6Fd2aD4A9Edc4686758bE77aE480bfe6A;
 

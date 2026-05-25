@@ -50,13 +50,13 @@ contract DeployAll is Script {
         // 4. 部署 Core 代理
         bytes memory initData = abi.encodeWithSelector(
             MetaNodeCore.initialize.selector,
-            address(factory),    // factory
-            address(helper),     // helper
-            deployer,            // signer
-            deployer,            // platformFeeReceiver
-            deployer,            // marginReceiver
-            deployer,            // graduateFeeReceiver
-            deployer             // admin
+            address(factory), // factory
+            address(helper), // helper
+            deployer, // signer
+            deployer, // platformFeeReceiver
+            deployer, // marginReceiver
+            deployer, // graduateFeeReceiver
+            deployer // admin
         );
         ERC1967Proxy coreProxy = new ERC1967Proxy(address(coreImpl), initData);
         MetaNodeCore core = MetaNodeCore(payable(address(coreProxy)));
@@ -70,8 +70,8 @@ contract DeployAll is Script {
         // 6. 部署 Vesting 代理
         bytes memory vestingInitData = abi.encodeWithSelector(
             MEMEVesting.initialize.selector,
-            deployer,           // admin
-            address(core)       // operator (core)
+            deployer, // admin
+            address(core) // operator (core)
         );
         ERC1967Proxy vestingProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         MEMEVesting vesting = MEMEVesting(address(vestingProxy));
@@ -79,7 +79,7 @@ contract DeployAll is Script {
 
         // 7. 配置权限
         console.log("5. Configuring permissions...");
-        
+
         // Factory 设置 MetaNode
         factory.setMetaNode(address(core));
         console.log("   Factory.setMetaNode done");

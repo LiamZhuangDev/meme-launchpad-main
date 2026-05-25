@@ -30,30 +30,30 @@ import {Chains} from "./Chains.sol";
 
 contract DeployConfig is Script {
     // ============ 内部状态 ============
-    string internal _json;  // 原始 JSON 配置字符串
+    string internal _json; // 原始 JSON 配置字符串
 
     // ============ 合约地址（已部署的合约地址，为 0 表示未部署）============
-    address public MEMEHelper;      // 辅助合约地址
-    address public MEMEFactory;     // 工厂合约地址
-    address public MEMECore;        // 核心合约代理地址
-    address public MEMEVesting;     // 归属合约代理地址
+    address public MEMEHelper; // 辅助合约地址
+    address public MEMEFactory; // 工厂合约地址
+    address public MEMECore; // 核心合约代理地址
+    address public MEMEVesting; // 归属合约代理地址
 
     // ============ 角色地址（必须在配置文件中提供）============
-    address public Admin;                   // 管理员地址（拥有最高权限）
-    address public Signer;                  // 签名者地址（用于验证创建请求）
-    address public PlatformFeeReceiver;     // 平台费用接收地址
-    address public MarginReceiver;          // 保证金接收地址
-    address public GraduateFeeReceiver;     // 毕业费用接收地址
+    address public Admin; // 管理员地址（拥有最高权限）
+    address public Signer; // 签名者地址（用于验证创建请求）
+    address public PlatformFeeReceiver; // 平台费用接收地址
+    address public MarginReceiver; // 保证金接收地址
+    address public GraduateFeeReceiver; // 毕业费用接收地址
 
     // ============ 外部依赖地址 ============
-    address public Router;  // PancakeSwap V2 Router 地址
-    address public WBNB;    // WBNB（Wrapped BNB）合约地址
+    address public Router; // PancakeSwap V2 Router 地址
+    address public WBNB; // WBNB（Wrapped BNB）合约地址
 
     // ============ 配置参数 ============
-    uint256 public MinLockTime;  // 最小锁仓时间（秒）
+    uint256 public MinLockTime; // 最小锁仓时间（秒）
 
     // ============ 错误定义 ============
-    error AddressDoesNotExist(string);  // 必需地址不存在时抛出
+    error AddressDoesNotExist(string); // 必需地址不存在时抛出
 
     /**
      * @notice 构造函数
@@ -65,9 +65,7 @@ contract DeployConfig is Script {
         try vm.readFile(_path) returns (string memory data) {
             _json = data;
         } catch {
-            console.log(
-                "Warning: unable to read config. Do not deploy unless you are not using config."
-            );
+            console.log("Warning: unable to read config. Do not deploy unless you are not using config.");
             return;
         }
 
@@ -141,7 +139,6 @@ contract DeployConfig is Script {
      * @dev 兼容 JSON 解析可能产生的特殊零地址值
      */
     function isZeroAddress(address addr_) public pure returns (bool) {
-        return
-            addr_ == address(32) || addr_ == address(0) || addr_ == address(64);
+        return addr_ == address(32) || addr_ == address(0) || addr_ == address(64);
     }
 }

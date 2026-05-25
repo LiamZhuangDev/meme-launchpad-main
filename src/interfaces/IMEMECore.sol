@@ -7,9 +7,9 @@ import {IBondingCurveParams} from "./IBondingCurveParams.sol";
 /**
  * @title IMEMECore
  * @notice MEME 发射器核心合约接口
- * 
+ *
  * ============ 项目整体架构 ============
- * 
+ *
  *                    ┌─────────────────┐
  *                    │   MEMECore      │  ← 核心业务逻辑（本接口）
  *                    │  (可升级代理)    │
@@ -27,49 +27,48 @@ import {IBondingCurveParams} from "./IBondingCurveParams.sol";
  * ┌─────────────┐
  * │ MetaNodeToken│  ← 每次发币创建的 ERC20 代币
  * └─────────────┘
- * 
+ *
  * ============ 代币生命周期 ============
- * 
+ *
  * 1. NOT_CREATED → 代币尚未创建
  * 2. TRADING     → 交易中（用户可买卖）
  * 3. PENDING_GRADUATION → 待毕业（可售量低于阈值）
  * 4. GRADUATED   → 已毕业（流动性已添加到 DEX）
- * 
+ *
  * 特殊状态：
  * - PAUSED      → 暂停交易（可恢复）
  * - BLACKLISTED → 黑名单（紧急情况）
- * 
+ *
  * ============ 主要业务流程 ============
- * 
+ *
  * 【发币流程】
  * 1. 前端生成参数 → 后端签名 → 用户调用 createToken
  * 2. 合约验证签名、扣除费用
  * 3. 工厂部署代币、初始化曲线
  * 4. （可选）执行初始买入、创建归属计划
- * 
+ *
  * 【买入流程】
  * 用户支付 BNB → 扣除手续费 → 按曲线计算代币量 → 转移代币
- * 
+ *
  * 【卖出流程】
  * 用户转入代币 → 按曲线计算 BNB → 扣除手续费 → 转移 BNB
- * 
+ *
  * 【毕业流程】
  * 可售量 < 阈值 → 管理员触发毕业 → 添加 DEX 流动性 → 开放自由交易
  */
 interface IMEMECore is IVestingParams, IBondingCurveParams {
-
     // ============ 代币状态枚举 ============
 
     /**
      * @notice 代币生命周期状态
      */
     enum TokenStatus {
-        NOT_CREATED,        // 0: 未创建（默认值）
-        TRADING,            // 1: 交易中（正常买卖）
+        NOT_CREATED, // 0: 未创建（默认值）
+        TRADING, // 1: 交易中（正常买卖）
         PENDING_GRADUATION, // 2: 待毕业（等待添加流动性）
-        GRADUATED,          // 3: 已毕业（在 DEX 自由交易）
-        PAUSED,             // 4: 已暂停（临时停止交易）
-        BLACKLISTED         // 5: 黑名单（紧急冻结）
+        GRADUATED, // 3: 已毕业（在 DEX 自由交易）
+        PAUSED, // 4: 已暂停（临时停止交易）
+        BLACKLISTED // 5: 黑名单（紧急冻结）
     }
 
     // ============ 错误定义 ============
@@ -187,54 +186,50 @@ interface IMEMECore is IVestingParams, IBondingCurveParams {
 
     /// @notice 代币创建事件
     event TokenCreated(
-        address indexed token,      // 代币合约地址
-        address indexed creator,    // 创建者地址
-        string name,                // 代币名称
-        string symbol,              // 代币符号
-        uint256 totalSupply,        // 总供应量
-        bytes32 requestId           // 请求ID
+        address indexed token, // 代币合约地址
+        address indexed creator, // 创建者地址
+        string name, // 代币名称
+        string symbol, // 代币符号
+        uint256 totalSupply, // 总供应量
+        bytes32 requestId // 请求ID
     );
 
     /// @notice 买入事件
     event TokenBought(
-        address indexed token,      // 代币地址
-        address indexed buyer,      // 买家地址
-        uint256 bnbAmount,          // 支付的 BNB（扣费后）
-        uint256 tokenAmount,        // 获得的代币数量
-        uint256 tradingFee,         // 交易手续费
-        uint256 virtualBNBReserve,  // 更新后的虚拟 BNB 储备
-        uint256 virtualTokenReserve,// 更新后的虚拟代币储备
-        uint256 availableTokens,    // 剩余可售代币
-        uint256 collectedBNB        // 累计收集的 BNB
+        address indexed token, // 代币地址
+        address indexed buyer, // 买家地址
+        uint256 bnbAmount, // 支付的 BNB（扣费后）
+        uint256 tokenAmount, // 获得的代币数量
+        uint256 tradingFee, // 交易手续费
+        uint256 virtualBNBReserve, // 更新后的虚拟 BNB 储备
+        uint256 virtualTokenReserve, // 更新后的虚拟代币储备
+        uint256 availableTokens, // 剩余可售代币
+        uint256 collectedBNB // 累计收集的 BNB
     );
 
     /// @notice 卖出事件
     event TokenSold(
-        address indexed token,      // 代币地址
-        address indexed seller,     // 卖家地址
-        uint256 tokenAmount,        // 卖出的代币数量
-        uint256 bnbAmount,          // 获得的 BNB（扣费后）
-        uint256 tradingFee,         // 交易手续费
-        uint256 virtualBNBReserve,  // 更新后的虚拟 BNB 储备
-        uint256 virtualTokenReserve,// 更新后的虚拟代币储备
-        uint256 availableTokens,    // 剩余可售代币
-        uint256 collectedBNB        // 累计收集的 BNB
+        address indexed token, // 代币地址
+        address indexed seller, // 卖家地址
+        uint256 tokenAmount, // 卖出的代币数量
+        uint256 bnbAmount, // 获得的 BNB（扣费后）
+        uint256 tradingFee, // 交易手续费
+        uint256 virtualBNBReserve, // 更新后的虚拟 BNB 储备
+        uint256 virtualTokenReserve, // 更新后的虚拟代币储备
+        uint256 availableTokens, // 剩余可售代币
+        uint256 collectedBNB // 累计收集的 BNB
     );
 
     /// @notice 毕业事件（添加 DEX 流动性）
     event TokenGraduated(
-        address indexed token,      // 代币地址
-        uint256 liquidityBNB,       // 添加的 BNB 流动性
-        uint256 liquidityTokens,    // 添加的代币流动性
-        uint256 liquidityResult     // 获得的 LP 代币数量
+        address indexed token, // 代币地址
+        uint256 liquidityBNB, // 添加的 BNB 流动性
+        uint256 liquidityTokens, // 添加的代币流动性
+        uint256 liquidityResult // 获得的 LP 代币数量
     );
 
     /// @notice 状态变更事件
-    event TokenStatusChanged(
-        address indexed token,
-        TokenStatus oldStatus,
-        TokenStatus newStatus
-    );
+    event TokenStatusChanged(address indexed token, TokenStatus oldStatus, TokenStatus newStatus);
 
     /// @notice 代币暂停事件
     event TokenPaused(address indexed token);
@@ -273,25 +268,25 @@ interface IMEMECore is IVestingParams, IBondingCurveParams {
     event TokenCreatedWithInitialBuy(
         address indexed token,
         address indexed creator,
-        uint256 initialTokensPurchased,  // 初始购买的代币数量
-        uint256 initialBNBSpent,         // 初始购买花费的 BNB
-        uint256 actualPercentage         // 实际购买百分比
+        uint256 initialTokensPurchased, // 初始购买的代币数量
+        uint256 initialBNBSpent, // 初始购买花费的 BNB
+        uint256 actualPercentage // 实际购买百分比
     );
 
     /// @notice 保证金存入事件
     event MarginDeposited(
         address indexed token,
         address indexed creator,
-        uint256 marginAmount,            // 保证金金额
-        uint256 lockTime                 // 锁定时间
+        uint256 marginAmount, // 保证金金额
+        uint256 lockTime // 锁定时间
     );
 
     /// @notice 归属计划创建事件
     event VestingCreated(
         address indexed token,
         address indexed beneficiary,
-        uint256 totalVestedAmount,       // 总归属数量
-        uint256 scheduleCount            // 归属计划数量
+        uint256 totalVestedAmount, // 总归属数量
+        uint256 scheduleCount // 归属计划数量
     );
 
     /// @notice 代币销毁事件
@@ -362,7 +357,10 @@ interface IMEMECore is IVestingParams, IBondingCurveParams {
     /**
      * @notice 计算买入可获得的代币数量（含手续费明细）
      */
-    function calculateBuyAmountWithFee(address token, uint256 bnbAmount) external view returns (uint256 tokenOut, uint256 netBNB, uint256 feeBNB);
+    function calculateBuyAmountWithFee(address token, uint256 bnbAmount)
+        external
+        view
+        returns (uint256 tokenOut, uint256 netBNB, uint256 feeBNB);
 
     /**
      * @notice 计算卖出可获得的 BNB（不含手续费）
@@ -372,5 +370,8 @@ interface IMEMECore is IVestingParams, IBondingCurveParams {
     /**
      * @notice 计算卖出可获得的 BNB（含手续费明细）
      */
-    function calculateSellReturnWithFee(address token, uint256 tokenAmount) external view returns (uint256 netBNB, uint256 feeBNB);
+    function calculateSellReturnWithFee(address token, uint256 tokenAmount)
+        external
+        view
+        returns (uint256 netBNB, uint256 feeBNB);
 }

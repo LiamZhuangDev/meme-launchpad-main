@@ -50,14 +50,7 @@ contract XLayerTest is Test {
 
         coreImpl = new MetaNodeCore();
         bytes memory coreInitData = abi.encodeWithSelector(
-            MetaNodeCore.initialize.selector,
-            address(factory),
-            address(helper),
-            signer,
-            admin,
-            admin,
-            admin,
-            admin
+            MetaNodeCore.initialize.selector, address(factory), address(helper), signer, admin, admin, admin, admin
         );
         ERC1967Proxy coreProxy = new ERC1967Proxy(address(coreImpl), coreInitData);
         core = MetaNodeCore(payable(address(coreProxy)));
@@ -69,7 +62,7 @@ contract XLayerTest is Test {
         bytes memory vestingInitData = abi.encodeWithSelector(
             MEMEVesting.initialize.selector,
             admin,
-            address(core)  // Core proxy as operator
+            address(core) // Core proxy as operator
         );
         ERC1967Proxy vestProxy = new ERC1967Proxy(address(vestingImpl), vestingInitData);
         vesting = MEMEVesting(address(vestProxy));
@@ -104,10 +97,7 @@ contract XLayerTest is Test {
         uint256 creationFee = core.creationFee();
         uint256 preBuyFeeRate = core.preBuyFeeRate();
         (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.saleAmount,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.saleAmount, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 preBuyFeeAmount = (initialBNB * preBuyFeeRate) / 10000;
         uint256 totalPayment = creationFee + initialBNB + preBuyFeeAmount;
@@ -116,12 +106,7 @@ contract XLayerTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         token = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
     }
 
@@ -155,7 +140,7 @@ contract XLayerTest is Test {
         vm.stopPrank();
 
         info = core.getTokenInfo(createdToken);
-        assert(uint(info.status) == uint(IMetaNodeCore.TokenStatus.GRADUATED));
+        assert(uint256(info.status) == uint256(IMetaNodeCore.TokenStatus.GRADUATED));
     }
 
     function _calculateBNBNeededForTokens(address token, uint256 tokenAmount) internal view returns (uint256) {
@@ -182,7 +167,6 @@ contract XLayerTest is Test {
         assertTrue(core.usedRequestIds(requestId), "Request ID should be marked as used");
     }
 
-
     function _createTokenWithFixedParams(
         uint256 timestamp,
         uint256 nonce,
@@ -206,7 +190,6 @@ contract XLayerTest is Test {
         params.marginBnb = 0;
         params.marginTime = 0;
 
-
         bytes memory data = abi.encode(params);
         bytes32 messageHash = keccak256(abi.encodePacked(data, block.chainid, address(core)));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(SIGNER_PRIVATE_KEY, messageHash);
@@ -215,10 +198,7 @@ contract XLayerTest is Test {
         uint256 creationFee = core.creationFee();
         uint256 preBuyFeeRate = core.preBuyFeeRate();
         (uint256 initialBNB, uint256 preBuyFee) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
         uint256 totalPayment = creationFee + initialBNB;
 
@@ -226,12 +206,7 @@ contract XLayerTest is Test {
         core.createToken{value: totalPayment}(data, signature);
 
         token = factory.predictTokenAddress(
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            address(core),
-            params.timestamp,
-            params.nonce
+            params.name, params.symbol, params.totalSupply, address(core), params.timestamp, params.nonce
         );
     }
 

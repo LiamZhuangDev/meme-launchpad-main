@@ -22,7 +22,7 @@ pragma solidity ^0.8.0;
 
 contract Chains {
     // ============ 状态变量 ============
-    
+
     /// @notice 链信息是否已初始化
     bool private chainsInitialized;
 
@@ -36,7 +36,7 @@ contract Chains {
 
     /// @notice 链名称到链信息的映射
     mapping(string => Chain) public chains;
-    
+
     /// @notice 链 ID 到链名称的映射
     mapping(uint256 => string) private idToAlias;
 
@@ -56,51 +56,51 @@ contract Chains {
         if (chainsInitialized) return;
 
         chainsInitialized = true;
-        
+
         // ===== 主网 =====
-        setChain("ethereum", 1);           // 以太坊主网
-        setChain("goerli", 5);             // Goerli 测试网（已弃用）
-        setChain("bnb", 56);               // BNB Chain 主网
-        setChain("opbnb", 204);            // opBNB 主网
-        setChain("polygon", 137);          // Polygon 主网
-        setChain("polygon_zkevm", 1101);   // Polygon zkEVM 主网
-        setChain("avalanche", 43114);      // Avalanche C-Chain
-        setChain("fantom", 250);           // Fantom Opera
-        setChain("optimism", 10);          // Optimism 主网
-        setChain("arb_one", 42161);        // Arbitrum One
-        setChain("moonbeam", 1284);        // Moonbeam
-        setChain("gnosis", 100);           // Gnosis Chain
-        setChain("metis", 1088);           // Metis Andromeda
-        setChain("arbitrum_nova", 42170);  // Arbitrum Nova
-        setChain("coredao", 1116);         // Core DAO
-        setChain("celo", 42220);           // Celo
-        setChain("linea", 59144);          // Linea
-        setChain("mantle", 5000);          // Mantle
-        setChain("base", 8453);            // Base
-        setChain("manta", 169);            // Manta Pacific
-        setChain("scroll", 534352);        // Scroll
-        setChain("combo", 9980);           // Combo
-        setChain("dogechain", 2000);       // Dogechain
-        setChain("hyper", 999);            // Hyper
-        setChain("xlayer", 196);           // XLayer 主网
+        setChain("ethereum", 1); // 以太坊主网
+        setChain("goerli", 5); // Goerli 测试网（已弃用）
+        setChain("bnb", 56); // BNB Chain 主网
+        setChain("opbnb", 204); // opBNB 主网
+        setChain("polygon", 137); // Polygon 主网
+        setChain("polygon_zkevm", 1101); // Polygon zkEVM 主网
+        setChain("avalanche", 43114); // Avalanche C-Chain
+        setChain("fantom", 250); // Fantom Opera
+        setChain("optimism", 10); // Optimism 主网
+        setChain("arb_one", 42161); // Arbitrum One
+        setChain("moonbeam", 1284); // Moonbeam
+        setChain("gnosis", 100); // Gnosis Chain
+        setChain("metis", 1088); // Metis Andromeda
+        setChain("arbitrum_nova", 42170); // Arbitrum Nova
+        setChain("coredao", 1116); // Core DAO
+        setChain("celo", 42220); // Celo
+        setChain("linea", 59144); // Linea
+        setChain("mantle", 5000); // Mantle
+        setChain("base", 8453); // Base
+        setChain("manta", 169); // Manta Pacific
+        setChain("scroll", 534352); // Scroll
+        setChain("combo", 9980); // Combo
+        setChain("dogechain", 2000); // Dogechain
+        setChain("hyper", 999); // Hyper
+        setChain("xlayer", 196); // XLayer 主网
 
         // ===== 测试网 =====
-        setChain("base_sepolia", 84532);       // Base Sepolia
-        setChain("eth_sepolia", 11155111);     // 以太坊 Sepolia
-        setChain("eth_holesky", 17000);        // 以太坊 Holesky
-        setChain("arb_sepolia", 421614);       // Arbitrum Sepolia
-        setChain("mantle_test", 5001);         // Mantle 测试网
-        setChain("celo_test", 44787);          // Celo Alfajores
-        setChain("coredao_test", 1115);        // Core DAO 测试网
-        setChain("scroll_sepolia", 534351);    // Scroll Sepolia
-        setChain("optimism_sepolia", 11155420);// Optimism Sepolia
-        setChain("polygon_zkevm_test", 1442);  // Polygon zkEVM Cardona
-        setChain("polygon_test", 80001);       // Polygon Mumbai
-        setChain("opbnb_test", 5611);          // opBNB 测试网
-        setChain("bnb_test", 97);              // BSC 测试网
-        setChain("bitmap_test", 686868);       // Bitmap 测试网
-        setChain("bsquared_test", 1002);       // B² Network 测试网
-        setChain("xlayer_test", 1952);         // XLayer 测试网
+        setChain("base_sepolia", 84532); // Base Sepolia
+        setChain("eth_sepolia", 11155111); // 以太坊 Sepolia
+        setChain("eth_holesky", 17000); // 以太坊 Holesky
+        setChain("arb_sepolia", 421614); // Arbitrum Sepolia
+        setChain("mantle_test", 5001); // Mantle 测试网
+        setChain("celo_test", 44787); // Celo Alfajores
+        setChain("coredao_test", 1115); // Core DAO 测试网
+        setChain("scroll_sepolia", 534351); // Scroll Sepolia
+        setChain("optimism_sepolia", 11155420); // Optimism Sepolia
+        setChain("polygon_zkevm_test", 1442); // Polygon zkEVM Cardona
+        setChain("polygon_test", 80001); // Polygon Mumbai
+        setChain("opbnb_test", 5611); // opBNB 测试网
+        setChain("bnb_test", 97); // BSC 测试网
+        setChain("bitmap_test", 686868); // Bitmap 测试网
+        setChain("bsquared_test", 1002); // B² Network 测试网
+        setChain("xlayer_test", 1952); // XLayer 测试网
     }
 
     /**
@@ -109,18 +109,11 @@ contract Chains {
      * @param chainId_ 链 ID
      * @dev 内部函数，用于初始化时注册链信息
      */
-    function setChain(
-        string memory chainName_,
-        uint256 chainId_
-    ) internal virtual {
+    function setChain(string memory chainName_, uint256 chainId_) internal virtual {
         require(
-            bytes(chainName_).length != 0,
-            "Chains setChain(string,uint256): Chain name cannot be the empty string."
+            bytes(chainName_).length != 0, "Chains setChain(string,uint256): Chain name cannot be the empty string."
         );
-        require(
-            chainId_ != 0,
-            "StdChains setChain(string,uint256): Chain ID cannot be 0."
-        );
+        require(chainId_ != 0, "StdChains setChain(string,uint256): Chain ID cannot be 0.");
 
         chains[chainName_] = Chain({name: chainName_, chainId: chainId_});
         idToAlias[chainId_] = chainName_;
@@ -131,9 +124,7 @@ contract Chains {
      * @param chainId_ 链 ID
      * @return 链名称（别名）
      */
-    function getChainAlice(
-        uint256 chainId_
-    ) external view returns (string memory) {
+    function getChainAlice(uint256 chainId_) external view returns (string memory) {
         return idToAlias[chainId_];
     }
 }

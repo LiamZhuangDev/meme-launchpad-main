@@ -149,11 +149,8 @@ contract TestOnchain is Script {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         uint256 creationFee = core.creationFee();
-        (uint256 initialBNB, ) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB,) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
 
         return core.createToken{value: creationFee + initialBNB}(data, signature);
@@ -161,7 +158,7 @@ contract TestOnchain is Script {
 
     function createTokenWithVesting(address creator, uint256 pk) internal returns (address) {
         IVestingParams.VestingAllocation[] memory vestingAllocations = new IVestingParams.VestingAllocation[](2);
-        
+
         // 线性释放 5% (500 基点)
         vestingAllocations[0] = IVestingParams.VestingAllocation({
             amount: 500, // 5% 基点
@@ -169,7 +166,7 @@ contract TestOnchain is Script {
             duration: 7 days,
             mode: IVestingParams.VestingMode.LINEAR
         });
-        
+
         // 悬崖释放 3% (300 基点)
         vestingAllocations[1] = IVestingParams.VestingAllocation({
             amount: 300, // 3% 基点
@@ -206,13 +203,10 @@ contract TestOnchain is Script {
 
         uint256 creationFee = core.creationFee();
         // 需要支付初始买入的 BNB
-        (uint256 initialBNB, ) = core.calculateInitialBuyBNB(
-            params.totalSupply,
-            params.virtualBNBReserve,
-            params.virtualTokenReserve,
-            params.initialBuyPercentage
+        (uint256 initialBNB,) = core.calculateInitialBuyBNB(
+            params.totalSupply, params.virtualBNBReserve, params.virtualTokenReserve, params.initialBuyPercentage
         );
-        
+
         return core.createToken{value: creationFee + initialBNB}(data, signature);
     }
 

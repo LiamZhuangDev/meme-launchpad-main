@@ -98,7 +98,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("test1", block.timestamp)),
             nonce: block.timestamp,
-            initialBuyPercentage: 0,  // No initial buy
+            initialBuyPercentage: 0, // No initial buy
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -131,7 +131,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("test50", block.timestamp)),
             nonce: block.timestamp + 1,
-            initialBuyPercentage: 5000,  // 50%
+            initialBuyPercentage: 5000, // 50%
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -173,7 +173,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("testmax", block.timestamp)),
             nonce: block.timestamp + 2,
-            initialBuyPercentage: 9990,  // 99.9%
+            initialBuyPercentage: 9990, // 99.9%
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -192,7 +192,7 @@ contract InitialBuyTest is Test {
         bytes memory signature = abi.encodePacked(r, s, v);
 
         uint256 totalPayment = core.creationFee() + expectedBNB + (expectedBNB * core.preBuyFeeRate() / 10000);
-        vm.deal(creator, 10000 ether);  // Large amount for 99.9% buy
+        vm.deal(creator, 10000 ether); // Large amount for 99.9% buy
 
         vm.prank(creator);
         core.createToken{value: totalPayment}(data, signature);
@@ -219,7 +219,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("testexceed", block.timestamp)),
             nonce: block.timestamp + 3,
-            initialBuyPercentage: 10000,  // 100% - should fail
+            initialBuyPercentage: 10000, // 100% - should fail
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -251,7 +251,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("testins", block.timestamp)),
             nonce: block.timestamp + 4,
-            initialBuyPercentage: 5000,  // 50%
+            initialBuyPercentage: 5000, // 50%
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -285,7 +285,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("testref", block.timestamp)),
             nonce: block.timestamp + 5,
-            initialBuyPercentage: 1000,  // 10%
+            initialBuyPercentage: 1000, // 10%
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -333,7 +333,7 @@ contract InitialBuyTest is Test {
             timestamp: block.timestamp,
             requestId: keccak256(abi.encodePacked("testevt", block.timestamp)),
             nonce: block.timestamp + 6,
-            initialBuyPercentage: 2500,  // 25%
+            initialBuyPercentage: 2500, // 25%
             marginBnb: 0,
             marginTime: 0,
             vestingAllocations: new IMetaNodeCore.VestingAllocation[](0)
@@ -358,9 +358,9 @@ contract InitialBuyTest is Test {
 
     // Helper function to calculate expected amounts
     function _calculateExpectedAmounts(IMetaNodeCore.CreateTokenParams memory params)
-    internal
-    pure
-    returns (uint256 expectedTokens, uint256 expectedBNB)
+        internal
+        pure
+        returns (uint256 expectedTokens, uint256 expectedBNB)
     {
         expectedTokens = (params.totalSupply * params.initialBuyPercentage) / 10000;
         uint256 k = params.virtualBNBReserve * params.virtualTokenReserve;

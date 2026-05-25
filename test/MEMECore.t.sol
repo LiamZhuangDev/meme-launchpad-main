@@ -26,20 +26,20 @@ import {MockWBNB} from "./mocks/MockWBNB.sol";
 
 contract MetaNodeCoreTest is Test {
     // ============ 合约实例 ============
-    MetaNodeCore public core;      // 核心合约
-    MEMEFactory public factory;    // 工厂合约
-    MEMEHelper public helper;      // 辅助合约
-    MEMEVesting public vesting;    // 归属合约
+    MetaNodeCore public core; // 核心合约
+    MEMEFactory public factory; // 工厂合约
+    MEMEHelper public helper; // 辅助合约
+    MEMEVesting public vesting; // 归属合约
 
     // ============ 测试地址 ============
-    address public admin = makeAddr("admin");       // 管理员地址
-    address public creator = makeAddr("creator");   // 代币创建者
-    address public user = makeAddr("user");         // 普通用户
+    address public admin = makeAddr("admin"); // 管理员地址
+    address public creator = makeAddr("creator"); // 代币创建者
+    address public user = makeAddr("user"); // 普通用户
     address public platform = makeAddr("platform"); // 平台费用接收地址
 
     // ============ 签名配置 ============
-    uint256 signerPk = 0x1234;  // 签名者私钥
-    address signer;              // 签名者地址
+    uint256 signerPk = 0x1234; // 签名者私钥
+    address signer; // 签名者地址
 
     function setUp() public {
         signer = vm.addr(signerPk);
@@ -128,12 +128,15 @@ contract MetaNodeCoreTest is Test {
     function testOnlyPauserCanPauseToken() public {
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         pay += core.creationFee();
         vm.prank(creator);
         core.createToken{value: pay}(abi.encode(p), sig);
 
-        address token = factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
+        address token =
+            factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
 
         vm.expectRevert();
         core.pauseToken(token);
@@ -146,12 +149,15 @@ contract MetaNodeCoreTest is Test {
     function testOnlyDeployerCanGraduate() public {
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         pay += core.creationFee();
         vm.prank(creator);
         core.createToken{value: pay}(abi.encode(p), sig);
 
-        address token = factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
+        address token =
+            factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
 
         vm.expectRevert();
         core.graduateToken(token);
@@ -167,7 +173,9 @@ contract MetaNodeCoreTest is Test {
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         p.marginBnb = 1 ether;
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         pay += p.marginBnb;
         pay += core.creationFee();
         uint256 balBefore = platform.balance;
@@ -189,7 +197,8 @@ contract MetaNodeCoreTest is Test {
         uint256 pay = core.creationFee();
         vm.prank(creator);
         core.createToken{value: pay}(abi.encode(p), sig);
-        address token = factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
+        address token =
+            factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
 
         IMetaNodeCore.BondingCurveParams memory curve = core.getBondingCurve(token);
         vm.expectRevert(IMetaNodeCore.SlippageExceeded.selector);
@@ -207,7 +216,8 @@ contract MetaNodeCoreTest is Test {
         bytes memory sig = _signParams(p);
         vm.prank(creator);
         core.createToken{value: core.creationFee()}(abi.encode(p), sig);
-        address token = factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
+        address token =
+            factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
 
         vm.expectRevert(IMetaNodeCore.InsufficientBalance.selector);
         vm.prank(user);
@@ -222,11 +232,15 @@ contract MetaNodeCoreTest is Test {
      */
     function testLinearVestingTooShortShouldRevert() public {
         IVestingParams.VestingAllocation[] memory allocs = new IVestingParams.VestingAllocation[](1);
-        allocs[0] = IVestingParams.VestingAllocation({amount: 1000, launchTime: 0, duration: 1, mode: IVestingParams.VestingMode.LINEAR});
+        allocs[0] = IVestingParams.VestingAllocation({
+            amount: 1000, launchTime: 0, duration: 1, mode: IVestingParams.VestingMode.LINEAR
+        });
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         p.vestingAllocations = allocs;
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         vm.prank(creator);
         vm.expectRevert();
         core.createToken{value: pay}(abi.encode(p), sig);
@@ -238,11 +252,15 @@ contract MetaNodeCoreTest is Test {
      */
     function testBurnModeVestingBurnsTokens() public {
         IVestingParams.VestingAllocation[] memory allocs = new IVestingParams.VestingAllocation[](1);
-        allocs[0] = IVestingParams.VestingAllocation({amount: 1000, launchTime: 0, duration: 0, mode: IVestingParams.VestingMode.BURN});
+        allocs[0] = IVestingParams.VestingAllocation({
+            amount: 1000, launchTime: 0, duration: 0, mode: IVestingParams.VestingMode.BURN
+        });
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         p.vestingAllocations = allocs;
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         pay += core.creationFee();
         vm.prank(creator);
         core.createToken{value: pay}(abi.encode(p), sig);
@@ -257,11 +275,14 @@ contract MetaNodeCoreTest is Test {
     function testCannotTradeIfBlacklisted() public {
         IMetaNodeCore.CreateTokenParams memory p = _basicParams();
         bytes memory sig = _signParams(p);
-        (uint256 pay,uint256 preBuyFee) = core.calculateInitialBuyBNB(p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage);
+        (uint256 pay, uint256 preBuyFee) = core.calculateInitialBuyBNB(
+            p.totalSupply, p.virtualBNBReserve, p.virtualTokenReserve, p.initialBuyPercentage
+        );
         pay += core.creationFee();
         vm.prank(creator);
         core.createToken{value: pay}(abi.encode(p), sig);
-        address token = factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
+        address token =
+            factory.predictTokenAddress(p.name, p.symbol, p.totalSupply, address(core), p.timestamp, p.nonce);
 
         vm.startPrank(admin);
         core.blacklistToken(token);
