@@ -36,6 +36,7 @@ contract XLayerTest is Test {
     uint256 constant VIRTUAL_TOKEN_RESERVE = 1073972602 ether;
 
     function setUp() public {
+        vm.skip(!vm.envOr("RUN_FORK_TESTS", false), "Set RUN_FORK_TESTS=true to run XLayer fork tests");
         vm.createSelectFork("xlayer_test", 12601629);
 
         signer = vm.addr(SIGNER_PRIVATE_KEY);

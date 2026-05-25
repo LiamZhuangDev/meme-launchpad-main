@@ -38,6 +38,7 @@ fuzz = { runs = 10000 }
 # Network configuration
 [rpc_endpoints]
 bsc_testnet = "https://data-seed-prebsc-1-s1.binance.org:8545"
+xlayer_test = "${XLAYER_TEST_RPC}"
 
 [etherscan]
 bsc_testnet = { key = "5FCIE4WK4IU1DNCAGGBXNZJPK49YMIS5FT", url = "https://api-testnet.bscscan.com/api", chain = 97 }

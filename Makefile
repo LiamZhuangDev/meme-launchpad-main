@@ -119,12 +119,12 @@ test-vanity:
 # BSC 测试网 fork 测试
 # 需要设置环境变量：export BSC_TEST_RPC=https://data-seed-prebsc-1-s1.binance.org:8545
 test-fork-bsc:
-	forge test --match-contract BSCTest -vvv
+	RUN_FORK_TESTS=true forge test --match-contract BSCTest -vvv
 
 # XLayer 测试网 fork 测试
 # 需要设置环境变量：export XLAYER_TEST_RPC=<your_xlayer_rpc>
 test-fork-xlayer:
-	forge test --match-contract XLayerTest -vvv
+	RUN_FORK_TESTS=true forge test --match-contract XLayerTest -vvv
 
 # ============ 模糊测试 ============
 

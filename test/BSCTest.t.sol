@@ -37,6 +37,7 @@ contract BSCTest is Test {
     uint256 constant VIRTUAL_TOKEN_RESERVE = 1073972602 ether;
 
     function setUp() public {
+        vm.skip(!vm.envOr("RUN_FORK_TESTS", false), "Set RUN_FORK_TESTS=true to run BSC fork tests");
         vm.createSelectFork("bsc_testnet", 70200415);
 
         signer = vm.addr(SIGNER_PRIVATE_KEY);
