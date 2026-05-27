@@ -68,7 +68,7 @@ contract MetaNodeToken is ERC20Burnable {
      * @dev 用于判断是否允许转账到交易对
      * 非 NORMAL 模式下禁止直接转入 pair
      */
-    address public pair;
+    address public dexPair;
 
     /**
      * @notice MEMECore 核心合约地址
@@ -186,7 +186,7 @@ contract MetaNodeToken is ERC20Burnable {
      */
     function setPair(address _pair) external onlyMetaNode {
         if (_pair == address(0)) revert ZeroAddress();
-        pair = _pair;
+        dexPair = _pair;
         emit PairChanged(_pair);
     }
 
@@ -235,7 +235,7 @@ contract MetaNodeToken is ERC20Burnable {
         }
 
         // 规则4：非 NORMAL 模式禁止转入 pair
-        if (transferMode != TransferMode.MODE_NORMAL && to == pair && pair != address(0)) {
+        if (transferMode != TransferMode.MODE_NORMAL && to == dexPair && dexPair != address(0)) {
             revert TransferNotAllowedToPair();
         }
 

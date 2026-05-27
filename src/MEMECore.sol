@@ -446,7 +446,8 @@ contract MetaNodeCore is
 
         address pair = helper.getPairAddress(tokenAddress);
         if (pair == address(0)) revert InvalidPair();
-        MetaNodeToken(tokenAddress).setPair(pair);
+        MetaNodeToken token = MetaNodeToken(tokenAddress);
+        token.setPair(pair);
 
         // 7. 初始化曲线
         bondingCurve[tokenAddress] = BondingCurveParams({
@@ -993,17 +994,17 @@ contract MetaNodeCore is
         if (tokensToVest > 0) {
             VestingAllocation[] memory actualVestingAllocations = new VestingAllocation[](vestingAllocations.length);
 
-            uint256 allocatedTokens;
+            uint256 remainingVestingTokens = tokensToVest;
             TokenInfo memory info = tokenInfo[tokenAddress];
             uint256 actualLaunchTime = info.launchTime;
             if (actualLaunchTime == 0) {
                 actualLaunchTime = block.timestamp;
             }
 
-            int256 lastNonBurnIndex = -1;
+            uint256 lastVestingAllocationIndex = vestingAllocations.length;
             for (uint256 i = 0; i < vestingAllocations.length; i++) {
                 if (vestingAllocations[i].mode != VestingMode.BURN) {
-                    lastNonBurnIndex = int256(i);
+                    lastVestingAllocationIndex = i;
                 }
             }
 
@@ -1011,11 +1012,11 @@ contract MetaNodeCore is
                 uint256 allocationAmount;
                 if (vestingAllocations[i].mode == VestingMode.BURN) {
                     allocationAmount = 0;
-                } else if (int256(i) == lastNonBurnIndex) {
-                    allocationAmount = tokensToVest - allocatedTokens;
+                } else if (i == lastVestingAllocationIndex) {
+                    allocationAmount = remainingVestingTokens;
                 } else {
                     allocationAmount = (totalSupply * vestingAllocations[i].amount) / 10000;
-                    allocatedTokens += allocationAmount;
+                    remainingVestingTokens -= allocationAmount;
                 }
                 actualVestingAllocations[i] = VestingAllocation({
                     amount: allocationAmount,

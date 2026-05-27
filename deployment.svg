@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="920" viewBox="0 0 1400 920" role="img" aria-labelledby="title desc">
+  <title id="title">MEME Launchpad Deployment Picture</title>
+  <desc id="desc">A visual map of the MEME Launchpad deployment inputs, contract deployment order, post-deploy wiring, and current BSC testnet addresses.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#263238"/>
+    </marker>
+    <style>
+      .bg { fill: #f7f8fb; }
+      .title { font: 700 34px Arial, sans-serif; fill: #17212b; }
+      .subtitle { font: 400 17px Arial, sans-serif; fill: #52606d; }
+      .section { font: 700 18px Arial, sans-serif; fill: #17212b; }
+      .label { font: 700 15px Arial, sans-serif; fill: #17212b; }
+      .text { font: 400 14px Arial, sans-serif; fill: #32414f; }
+      .tiny { font: 400 12px Arial, sans-serif; fill: #52606d; }
+      .mono { font: 400 12px "Courier New", monospace; fill: #21313f; }
+      .box { fill: #ffffff; stroke: #cad3dc; stroke-width: 1.5; rx: 8; }
+      .input { fill: #eef7ff; stroke: #8ab8e8; }
+      .contract { fill: #fff7e8; stroke: #e0ad55; }
+      .proxy { fill: #eefbf0; stroke: #74b982; }
+      .config { fill: #f4efff; stroke: #a98ee6; }
+      .warn { fill: #fff1f0; stroke: #e0847a; }
+      .ok { fill: #eefbf0; stroke: #74b982; }
+      .line { stroke: #263238; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+      .softline { stroke: #7c8b99; stroke-width: 1.5; fill: none; marker-end: url(#arrow); stroke-dasharray: 5 5; }
+      .num { fill: #17212b; }
+      .numText { font: 700 13px Arial, sans-serif; fill: #fff; text-anchor: middle; dominant-baseline: central; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1400" height="920"/>
+
+  <text class="title" x="60" y="58">MEME Launchpad Deployment Picture</text>
+  <text class="subtitle" x="60" y="86">Foundry deployment flow: inputs -> contracts -> proxies -> role wiring -> usable launchpad</text>
+
+  <rect class="box input" x="60" y="125" width="310" height="220"/>
+  <text class="section" x="84" y="158">Inputs</text>
+  <text class="label" x="84" y="194">Environment</text>
+  <text class="mono" x="104" y="220">PRIVATE_KEY</text>
+  <text class="mono" x="104" y="244">BSC_TEST_RPC</text>
+  <text class="mono" x="104" y="268">ETH_API_KEY</text>
+  <text class="label" x="84" y="304">Config File</text>
+  <text class="mono" x="104" y="330">deploy-config/bnb_test/dev.json</text>
+
+  <rect class="box config" x="60" y="385" width="310" height="250"/>
+  <text class="section" x="84" y="418">Network Config</text>
+  <text class="text" x="84" y="452">Admin / Signer / fee receivers</text>
+  <text class="text" x="84" y="480">Pancake V2 Router</text>
+  <text class="mono" x="104" y="506">0xD99D...50D1</text>
+  <text class="text" x="84" y="536">WBNB</text>
+  <text class="mono" x="104" y="562">0xae13...A7cd</text>
+  <text class="text" x="84" y="592">MinLockTime = 86400</text>
+
+  <rect class="box" x="450" y="125" width="510" height="680"/>
+  <text class="section" x="474" y="158">Deploy Order</text>
+
+  <circle class="num" cx="486" cy="208" r="15"/>
+  <text class="numText" x="486" y="208">1</text>
+  <rect class="box contract" x="520" y="180" width="360" height="64"/>
+  <text class="label" x="544" y="207">MEMEFactory</text>
+  <text class="text" x="544" y="230">Deploys launched tokens with CREATE2</text>
+
+  <circle class="num" cx="486" cy="304" r="15"/>
+  <text class="numText" x="486" y="304">2</text>
+  <rect class="box contract" x="520" y="276" width="360" height="64"/>
+  <text class="label" x="544" y="303">MEMEHelper</text>
+  <text class="text" x="544" y="326">Bonding curve math + Pancake V2 helper</text>
+
+  <circle class="num" cx="486" cy="400" r="15"/>
+  <text class="numText" x="486" y="400">3</text>
+  <rect class="box contract" x="520" y="372" width="170" height="64"/>
+  <text class="label" x="544" y="399">MEMECore Impl</text>
+  <text class="text" x="544" y="422">UUPS logic</text>
+  <rect class="box proxy" x="710" y="372" width="170" height="64"/>
+  <text class="label" x="734" y="399">Core Proxy</text>
+  <text class="text" x="734" y="422">User entry point</text>
+
+  <circle class="num" cx="486" cy="496" r="15"/>
+  <text class="numText" x="486" y="496">4</text>
+  <rect class="box contract" x="520" y="468" width="170" height="64"/>
+  <text class="label" x="544" y="495">Vesting Impl</text>
+  <text class="text" x="544" y="518">UUPS logic</text>
+  <rect class="box proxy" x="710" y="468" width="170" height="64"/>
+  <text class="label" x="734" y="495">Vesting Proxy</text>
+  <text class="text" x="734" y="518">Schedules + claims</text>
+
+  <circle class="num" cx="486" cy="610" r="15"/>
+  <text class="numText" x="486" y="610">5</text>
+  <rect class="box ok" x="520" y="570" width="360" height="116"/>
+  <text class="label" x="544" y="600">Wire Everything</text>
+  <text class="text" x="544" y="628">Factory -> Core as token deployer</text>
+  <text class="text" x="544" y="652">Helper -> Core as math/liquidity caller</text>
+  <text class="text" x="544" y="676">Core -> Vesting + Signer + fees</text>
+
+  <rect class="box" x="520" y="720" width="360" height="54"/>
+  <text class="label" x="544" y="752">Ready: createToken / buy / sell / graduate</text>
+
+  <path class="line" d="M700 244 L700 276"/>
+  <path class="line" d="M700 340 L700 372"/>
+  <path class="line" d="M700 436 L700 468"/>
+  <path class="line" d="M700 532 L700 570"/>
+  <path class="line" d="M700 686 L700 720"/>
+  <path class="softline" d="M690 404 L710 404"/>
+  <path class="softline" d="M690 500 L710 500"/>
+
+  <path class="line" d="M370 235 C405 235 415 212 450 212"/>
+  <path class="line" d="M370 510 C405 510 415 308 450 308"/>
+  <path class="line" d="M370 510 C405 510 415 404 450 404"/>
+
+  <rect class="box ok" x="1030" y="125" width="310" height="350"/>
+  <text class="section" x="1054" y="158">Current BSC Testnet</text>
+  <text class="tiny" x="1054" y="184">From broadcast/DeployAll.s.sol/97/run-latest.json</text>
+
+  <text class="label" x="1054" y="226">Factory</text>
+  <text class="mono" x="1054" y="248">0x7A24756A156DE5752a2d91d494D2D4FdCc9fc18F</text>
+
+  <text class="label" x="1054" y="286">Helper</text>
+  <text class="mono" x="1054" y="308">0xbdBA43Fa0DF71724E5fF171eD3F4781ece0c141A</text>
+
+  <text class="label" x="1054" y="346">Core Proxy</text>
+  <text class="mono" x="1054" y="368">0x69207F321CFDfd30D73D1d9278e4132E15080ec9</text>
+
+  <text class="label" x="1054" y="406">Vesting Proxy</text>
+  <text class="mono" x="1054" y="428">0x99Cd9cA83277338583F40d6b689c0aA5E20baCAD</text>
+
+  <path class="line" d="M960 620 C1005 620 1000 300 1030 300"/>
+
+  <rect class="box warn" x="1030" y="520" width="310" height="190"/>
+  <text class="section" x="1054" y="553">Watch Outs</text>
+  <text class="text" x="1054" y="588">Deploy.s.sol currently only runs setAll().</text>
+  <text class="text" x="1054" y="616">Fresh deploy calls are commented out.</text>
+  <text class="text" x="1054" y="654">Config has MetaNodeCore key, but reader</text>
+  <text class="text" x="1054" y="678">expects MEMECore.</text>
+
+  <rect class="box" x="1030" y="750" width="310" height="90"/>
+  <text class="section" x="1054" y="783">Command</text>
+  <text class="mono" x="1054" y="814">forge build</text>
+  <text class="mono" x="1054" y="836">make deploy-bsc-test-no-verify</text>
+
+  <text class="tiny" x="60" y="875">Open this SVG in a browser or image viewer: docs/deployment-picture.svg</text>
+</svg>

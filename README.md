@@ -34,6 +34,64 @@ flowchart TD
 - `MetaNodeToken` is the ERC20 that gets deployed per launch. It starts in restricted mode, then controlled mode during bonding-curve trading, then normal mode after graduation. The key transfer modes are defined in `MEMEToken.sol` (line 44).
 - `MEMEHelper` contains the constant-product math: k = virtualBNBReserve * virtualTokenReserve. Buying increases virtual BNB reserve and decreases virtual token reserve; selling does the reverse.
 - `MEMEVesting` stores schedules by `token -> beneficiary -> scheduleId`. It supports `BURN`, `CLIFF`, and `LINEAR` modes from `IVestingParams.sol` (line 25).
+## Bonding Curve
+The bonding curve here is a temporary AMM before the token "graduates" to PancakeSwap.
+
+                    Bonding Curve: x * y = k
+
+      Token reserve y
+      ^
+      |
+      |     Start
+      |      *
+      |       \
+      |        \
+      |         \
+      |          \
+      |           \
+      |            *  After creator initial buy
+      |             \
+      |              \
+      |               \
+      |                *  After public buys
+      |
+      +------------------------------------------------> BNB reserve x
+
+
+      x = virtualBNBReserve
+      y = virtualTokenReserve
+      k = x * y
+      price = x / y
+
+      As x increases, y decreases.
+      As users buy, price goes up.
+
+- For a buy
+
+Before buy:
+```
+    x0 = virtualBNBReserve
+    y0 = virtualTokenReserve
+    k  = x0 * y0
+```
+User pays BNB: `bnbIn = amount paid into curve`
+
+After buy:
+```
+    x1 = x0 + bnbIn
+    y1 = k / x1 (y1 < y0)
+```
+Tokens received: `tokensOut = y0 - y1`
+
+- So as users buy more:
+```
+virtualBNBReserve (x) goes up
+virtualTokenReserve (y) goes down
+price (x / y) goes up
+availableTokens goes down
+collectedBNB goes up
+```
+
 ## Timeline flows
 ### Token Creation Sequence
 ```mermaid
@@ -72,6 +130,77 @@ sequenceDiagram
 ```
 The main entry point is `MEMECore.createToken (line 385)`. Important checks happen there: signature validity, one-time requestId, sale amount validity, max initial buy 9990 basis points, and payment sufficiency.
 One subtle but important design choice: the created token mints the entire supply to `MEMECore`, not the creator. The core contract then releases tokens according to launch rules.
+
+### Offchain Approval for Token Creation
+The backend signer is offchain approval authority for `MEMECore.createToken`. Creator's wallet submits the signed payload to `MEMECore`. The contract verifies the request payload was signed by an address that has `SIGNER_ROLE` in `MEMECore`.
+
+So the flow is:
+1. `Deploy` script initializes `MEMECore` with tokenomics params and roles (including signer for `MEMECore.createToken`) 
+2. `Backend` Signs message using private key.
+3. `MEMECore`
+    - Recovers signer address.
+    - Checks if recovered address have `SIGNER_ROLE`, If yes: request approved; otherwise: revert
+
+This pattern is powerful because the backend can dynamically approve launches by signing **without** storing everything onchain:
+```solidity
+mapping(address => bool) approved;
+```
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Core as MEMECore
+    participant Creator
+    participant Frontend
+    participant Backend as Backend Signer
+    participant Factory as MEMEFactory
+
+    Admin->>Core: initialize(..., signer, ...)
+    Core->>Core: grant SIGNER_ROLE to signer
+
+    Creator->>Frontend: Fill token launch form
+    Frontend->>Frontend: Build CreateTokenParams
+    Frontend->>Backend: Send params for approval
+
+    Backend->>Backend: Validate business rules offchain
+    Backend->>Backend: ABI encode CreateTokenParams
+    Backend->>Backend: hash = keccak256(data, chainId, core)
+    Backend->>Backend: Sign hash with SIGNER_PRIVATE_KEY
+    Backend-->>Frontend: Return data + signature
+
+    Frontend->>Creator: Ask wallet to submit createToken
+    Creator->>Core: createToken(data, signature) + required BNB
+
+    Core->>Core: abi.decode(data)
+    Core->>Core: hash = keccak256(data, CHAIN_ID, address(this))
+    Core->>Core: recover signer from signature
+    Core->>Core: require signer has SIGNER_ROLE
+    Core->>Core: check timestamp expiry
+    Core->>Core: check requestId unused
+    Core->>Core: mark requestId used
+
+    Core->>Factory: deployToken(...)
+    Factory-->>Core: token address
+    Core-->>Creator: TokenCreated event
+```
+### Vesting
+Real token launches often want mixed rules, for example:
+```
+Initial buy = 10% of total supply
+
+2% burn forever
+3% cliff unlock after 30 days
+3% linear unlock over 90 days
+2% sent immediately
+```
+That needs multiple allocations:
+```solidity
+[
+    { amount: 200, mode: BURN,   duration: 0 },
+    { amount: 300, mode: CLIFF,  duration: 30 days },
+    { amount: 300, mode: LINEAR, duration: 90 days }
+]
+```
 
 ### Buy Sequence
 ```mermaid
