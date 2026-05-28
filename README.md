@@ -295,8 +295,53 @@ sequenceDiagram
 ```
 The vesting calculation is in `MEMEVesting.sol (line 349)`. LINEAR uses elapsed time over total duration; CLIFF releases everything only after endTime; BURN never becomes claimable.
 
+### Solidity Hooks
+A `hook` is a function that is automatically called before or after some important action, so child contracts can customize behavaior.
+Examples: OpenZeppelin uses hooks around token transfers, minting and burning.
+```solidity
+ERC20 OZ v4:
+_beforeTokenTransfer(...)
+_afterTokenTransfer(...)
 
+ERC20 OZ v5 (override _update):
+_update(...)
 
+ERC721:
+_beforeTokenTransfer(...)
+_afterTokenTransfer(...)
+```
+```solidity
+MEMEToken.sol line 219:
+
+function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+    super._beforeTokenTransfer(from, to, amount);
+
+    // 规则1：允许铸造和销毁
+    if (from == address(0) || to == address(0)) {
+        return;
+    }
+
+    // 规则2：禁止转账到代币合约自身
+    if (to == address(this)) {
+        revert TransferToTokenNotAllowed();
+    }
+
+    // 规则3：归属合约转出始终允许
+    if (from == vestingContract && vestingContract != address(0)) {
+        return;
+    }
+
+    // 规则4：非 NORMAL 模式禁止转入 pair
+    if (transferMode != TransferMode.MODE_NORMAL && to == dexPair && dexPair != address(0)) {
+        revert TransferNotAllowedToPair();
+    }
+
+    // 规则5：RESTRICTED 模式禁止所有转账
+    if (transferMode == TransferMode.MODE_TRANSFER_RESTRICTED) {
+        revert TransferRestricted();
+    }
+}
+```
 
 
 

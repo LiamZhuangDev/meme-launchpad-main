@@ -278,7 +278,7 @@ contract MEMEVesting is
 
         // 2. 计算可领取
         claimableAmount = _calculateClaimableAmount(schedule);
-        if (claimableAmount == 0) revert NoClaimableAmount();
+        if (claimableAmount <= 0) revert NoClaimableAmount();
 
         // 3. 更新状态
         schedule.claimedAmount += claimableAmount;
@@ -335,16 +335,16 @@ contract MEMEVesting is
      * 当前时间 <= startTime → 返回 0
      *
      * 【已完全解锁】
-     * 当前时间 >= endTime → vestedAmount = totalAmount
+     * 当前时间 >= endTime → claimableAmount = totalAmount
      *
      * 【进行中 - CLIFF】
      * 返回 0（等待到期）
      *
      * 【进行中 - LINEAR】
-     * vestedAmount = totalAmount × (当前时间 - 开始时间) / (结束时间 - 开始时间)
+     * claimableAmount = totalAmount × (当前时间 - 开始时间) / (结束时间 - 开始时间)
      *
      * 【最终计算】
-     * claimable = vestedAmount - claimedAmount
+     * ret = claimableAmount - claimedAmount
      */
     function _calculateClaimableAmount(VestingSchedule memory schedule) private view returns (uint256) {
         // BURN 模式不可领取
@@ -357,26 +357,26 @@ contract MEMEVesting is
             return 0;
         }
 
-        uint256 vestedAmount;
+        uint256 claimableAmount;
 
         // 已完全解锁
         if (block.timestamp >= schedule.endTime) {
-            vestedAmount = schedule.totalAmount;
+            claimableAmount = schedule.totalAmount;
         } else {
             // 进行中
             if (schedule.mode == VestingMode.CLIFF) {
                 // CLIFF：未到期返回 0
-                vestedAmount = 0;
+                claimableAmount = 0;
             } else if (schedule.mode == VestingMode.LINEAR) {
                 // LINEAR：按时间比例
                 uint256 timePassed = block.timestamp - schedule.startTime;
                 uint256 totalDuration = schedule.endTime - schedule.startTime;
-                vestedAmount = (schedule.totalAmount * timePassed) / totalDuration;
+                claimableAmount = (schedule.totalAmount * timePassed) / totalDuration;
             }
         }
 
         // 扣除已领取
-        return vestedAmount > schedule.claimedAmount ? vestedAmount - schedule.claimedAmount : 0;
+        return claimableAmount - schedule.claimedAmount;
     }
 
     // ============ 查询函数 ============
