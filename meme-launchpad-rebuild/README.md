@@ -31,6 +31,17 @@ contracts stay untouched.
 - `Step02CoreWiring.t.sol`: tests for one-time initialization, roles, defaults,
   factory permissions, and admin-only dependency updates.
 
+### Step 3: Signed Token Creation
+
+- `CreateTokenParams`: the ABI-encoded request that a trusted backend signer
+  authorizes and any user can submit.
+- `createToken`: verifies the signature, request expiry, replay ID, creation fee,
+  and basic token parameters before deploying through the factory.
+- The signed digest includes `data`, `chainId`, and the core address, so the same
+  signature cannot be reused for a different request, chain, or core contract.
+- `Step03SignedTokenCreation.t.sol`: tests successful creation and registration,
+  fee forwarding/refunds, invalid signatures, expiration, and replay protection.
+
 Run it with:
 
 ```bash
