@@ -4,11 +4,14 @@ pragma solidity ^0.8.20;
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LearningMEMEFactory} from "./LearningMEMEFactory.sol";
 import {LearningMEMEToken} from "./LearningMEMEToken.sol";
+import {ILearningMEMEHelper} from "./interfaces/ILearningMEMEHelper.sol";
 
 contract LearningMEMECore is AccessControl, ReentrancyGuard {
     using ECDSA for bytes32;
+    using SafeERC20 for LearningMEMEToken;
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
@@ -25,6 +28,9 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         string name;
         string symbol;
         uint256 totalSupply;
+        uint256 saleAmount;
+        uint256 virtualBNBReserve;
+        uint256 virtualTokenReserve;
         uint256 launchTime;
         address creator;
         uint256 timestamp;
@@ -58,6 +64,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
 
     mapping(bytes32 => bool) public usedRequestIds;
     mapping(address => TokenInfo) public tokenInfo;
+    mapping(address => ILearningMEMEHelper.BondingCurveParams) public bondingCurve;
 
     error AlreadyInitialized();
     error ZeroAddress();
@@ -67,6 +74,14 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     error InsufficientFee();
     error InvalidTokenParameters();
     error NativeTransferFailed();
+    error TokenNotTrading();
+    error TokenNotLaunchedYet();
+    error TransactionExpired();
+    error DeadlineTooFar();
+    error InvalidNativeAmount();
+    error InvalidTokenAmount();
+    error SlippageExceeded();
+    error InsufficientLiquidity();
 
     event Initialized(address indexed admin, address indexed signer, address indexed factory);
     event HelperChanged(address indexed oldHelper, address indexed newHelper);
@@ -78,6 +93,28 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         string symbol,
         uint256 totalSupply,
         bytes32 requestId
+    );
+    event TokenBought(
+        address indexed token,
+        address indexed buyer,
+        uint256 bnbAmount,
+        uint256 tokenAmount,
+        uint256 tradingFee,
+        uint256 virtualBNBReserve,
+        uint256 virtualTokenReserve,
+        uint256 availableTokens,
+        uint256 collectedBNB
+    );
+    event TokenSold(
+        address indexed token,
+        address indexed seller,
+        uint256 tokenAmount,
+        uint256 bnbAmount,
+        uint256 tradingFee,
+        uint256 virtualBNBReserve,
+        uint256 virtualTokenReserve,
+        uint256 availableTokens,
+        uint256 collectedBNB
     );
 
     function initialize(
@@ -138,7 +175,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         nonReentrant
         returns (address tokenAddress)
     {
-        if (msg.value < creatio nFee) revert InsufficientFee();
+        if (msg.value < creationFee) revert InsufficientFee();
 
         CreateTokenParams memory params = abi.decode(data, (CreateTokenParams));
         bytes32 messageHash = keccak256(abi.encodePacked(data, chainId, address(this)));
@@ -149,7 +186,9 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         if (usedRequestIds[params.requestId]) revert RequestAlreadyProcessed();
         if (
             bytes(params.name).length == 0 || bytes(params.symbol).length == 0 || params.totalSupply == 0
-                || params.creator == address(0) || params.requestId == bytes32(0)
+                || params.saleAmount == 0 || params.saleAmount > params.totalSupply || params.virtualBNBReserve == 0
+                || params.virtualTokenReserve <= params.saleAmount || params.creator == address(0)
+                || params.requestId == bytes32(0)
         ) {
             revert InvalidTokenParameters();
         }
@@ -161,6 +200,13 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
             factory.deployToken(params.name, params.symbol, params.totalSupply, params.timestamp, params.nonce);
 
         LearningMEMEToken(tokenAddress).setTransferMode(LearningMEMEToken.TransferMode.CONTROLLED);
+        bondingCurve[tokenAddress] = ILearningMEMEHelper.BondingCurveParams({
+            virtualBNBReserve: params.virtualBNBReserve,
+            virtualTokenReserve: params.virtualTokenReserve,
+            k: params.virtualBNBReserve * params.virtualTokenReserve,
+            availableTokens: params.saleAmount,
+            collectedBNB: 0
+        });
         tokenInfo[tokenAddress] = TokenInfo({
             creator: params.creator,
             createdAt: block.timestamp,
@@ -176,6 +222,118 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         emit TokenCreated(
             tokenAddress, params.creator, params.name, params.symbol, params.totalSupply, params.requestId
         );
+    }
+
+    function buy(address token, uint256 minTokenAmount, uint256 deadline) external payable nonReentrant {
+        _validateTrade(token);
+        // It limits a buy tx's deadline to less than 24 hours in the future: block.timestamp <= deadline < block.timestamp + 1 day
+        if (deadline < block.timestamp) revert TransactionExpired();
+        if (deadline >= block.timestamp + 1 days) revert DeadlineTooFar();
+        if (msg.value == 0) revert InvalidNativeAmount();
+
+        ILearningMEMEHelper.BondingCurveParams storage curve = bondingCurve[token];
+        ILearningMEMEHelper helperContract = ILearningMEMEHelper(helper);
+
+        uint256 tradingFee = msg.value * tradingFeeRate / 10_000;
+        uint256 netBNBAmount = msg.value - tradingFee;
+        uint256 tokenAmount = helperContract.calculateTokenAmountOut(netBNBAmount, curve);
+
+        if (tokenAmount > curve.availableTokens) {
+            tokenAmount = curve.availableTokens;
+            // when buying the final available tokens, the bonding curve calculates the exact net BNB required. 
+            netBNBAmount = helperContract.calculateRequiredBNB(tokenAmount, curve);
+            // We must work backward to find the fee.
+            // fee = gross * rate / 10_000 and net = gross - fee
+            // given net, fee = net * rate / (10_000 - rate)
+            tradingFee = netBNBAmount * tradingFeeRate / (10_000 - tradingFeeRate);
+            uint256 refund = msg.value - netBNBAmount - tradingFee;
+            if (refund > 0) _sendNative(msg.sender, refund);
+        }
+
+        if (tokenAmount == 0 || tokenAmount < minTokenAmount) revert SlippageExceeded();
+
+        curve.virtualBNBReserve += netBNBAmount;
+        curve.virtualTokenReserve -= tokenAmount;
+        curve.availableTokens -= tokenAmount;
+        curve.collectedBNB += netBNBAmount;
+
+        _sendNative(platformFeeReceiver, tradingFee);
+        LearningMEMEToken(token).safeTransfer(msg.sender, tokenAmount);
+
+        emit TokenBought(
+            token,
+            msg.sender,
+            netBNBAmount,
+            tokenAmount,
+            tradingFee,
+            curve.virtualBNBReserve,
+            curve.virtualTokenReserve,
+            curve.availableTokens,
+            curve.collectedBNB
+        );
+    }
+
+    function sell(address token, uint256 tokenAmount, uint256 minBNBAmount, uint256 deadline) external nonReentrant {
+        _validateTrade(token);
+        if (block.timestamp > deadline) revert TransactionExpired();
+        if (tokenAmount == 0) revert InvalidTokenAmount();
+
+        ILearningMEMEHelper.BondingCurveParams storage curve = bondingCurve[token];
+        uint256 grossBNBAmount = ILearningMEMEHelper(helper).calculateBNBAmountOut(tokenAmount, curve);
+        if (grossBNBAmount > curve.collectedBNB) revert InsufficientLiquidity();
+
+        uint256 tradingFee = grossBNBAmount * tradingFeeRate / 10_000;
+        uint256 netBNBAmount = grossBNBAmount - tradingFee;
+        if (netBNBAmount < minBNBAmount) revert SlippageExceeded();
+
+        LearningMEMEToken(token).safeTransferFrom(msg.sender, address(this), tokenAmount);
+
+        curve.virtualBNBReserve -= grossBNBAmount;
+        curve.virtualTokenReserve += tokenAmount;
+        curve.availableTokens += tokenAmount;
+        curve.collectedBNB -= grossBNBAmount;
+
+        _sendNative(platformFeeReceiver, tradingFee);
+        _sendNative(msg.sender, netBNBAmount);
+
+        emit TokenSold(
+            token,
+            msg.sender,
+            tokenAmount,
+            netBNBAmount,
+            tradingFee,
+            curve.virtualBNBReserve,
+            curve.virtualTokenReserve,
+            curve.availableTokens,
+            curve.collectedBNB
+        );
+    }
+
+    function calculateBuyAmountWithFee(address token, uint256 bnbAmount)
+        external
+        view
+        returns (uint256 tokenAmount, uint256 netBNBAmount, uint256 tradingFee)
+    {
+        ILearningMEMEHelper.BondingCurveParams memory curve = bondingCurve[token];
+        tradingFee = bnbAmount * tradingFeeRate / 10_000;
+        netBNBAmount = bnbAmount - tradingFee;
+        tokenAmount = ILearningMEMEHelper(helper).calculateTokenAmountOut(netBNBAmount, curve);
+
+        if (tokenAmount > curve.availableTokens) {
+            tokenAmount = curve.availableTokens;
+            netBNBAmount = ILearningMEMEHelper(helper).calculateRequiredBNB(tokenAmount, curve);
+            tradingFee = netBNBAmount * tradingFeeRate / (10_000 - tradingFeeRate);
+        }
+    }
+
+    function calculateSellReturnWithFee(address token, uint256 tokenAmount)
+        external
+        view
+        returns (uint256 netBNBAmount, uint256 tradingFee)
+    {
+        uint256 grossBNBAmount = ILearningMEMEHelper(helper).calculateBNBAmountOut(tokenAmount, bondingCurve[token]);
+        tradingFee = grossBNBAmount * tradingFeeRate / 10_000;
+        netBNBAmount = grossBNBAmount - tradingFee;
     }
 
     function setHelper(address helper_) external onlyRole(ADMIN_ROLE) {
@@ -195,5 +353,11 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     function _sendNative(address receiver, uint256 amount) private {
         (bool success,) = payable(receiver).call{value: amount}("");
         if (!success) revert NativeTransferFailed();
+    }
+
+    function _validateTrade(address token) private view {
+        TokenInfo memory info = tokenInfo[token];
+        if (info.creator == address(0) || info.status != TokenStatus.TRADING) revert TokenNotTrading();
+        if (info.launchTime > block.timestamp) revert TokenNotLaunchedYet();
     }
 }

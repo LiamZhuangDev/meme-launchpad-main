@@ -42,6 +42,29 @@ contracts stay untouched.
 - `Step03SignedTokenCreation.t.sol`: tests successful creation and registration,
   fee forwarding/refunds, invalid signatures, expiration, and replay protection.
 
+### Step 4: Bonding Curve Buy/Sell
+
+- `LearningMEMEHelper`: pure constant-product calculations using `x * y = k`.
+- Signed creation now initializes virtual reserves, real sale inventory, and the
+  amount of native currency actually collected by the curve.
+- `buy` and `sell`: enforce launch time, deadlines, slippage, trading fees, and
+  real-liquidity limits while updating both virtual and real reserve accounting.
+- `calculateBuyAmountWithFee` is quote function, it perform the same calculation as `buy` but it do not execute a trade or change contract state. A frontend calls it before `buy` to display the trading fee and choose slippage protection:
+  ```
+  (uint256 quotedTokens,,) =
+      core.calculateBuyAmountWithFee(token, 1 ether);
+
+  uint256 minTokens = quotedTokens * 95 / 100;
+
+  core.buy{value: 1 ether}(
+      token,
+      minTokens,
+      block.timestamp + 5 minutes
+  );
+  ``` 
+- `Step04BondingCurveTrading.t.sol`: tests quotes, reserve updates, round-trip
+  trading, fee transfers, slippage, launch timing, and insufficient liquidity.
+
 Run it with:
 
 ```bash
