@@ -50,12 +50,18 @@ contract Step03SignedTokenCreationTest is Test {
         assertTrue(core.usedRequestIds(params.requestId));
         assertEq(platform.balance, platformBalanceBefore + core.creationFee());
 
-        (address storedCreator, uint256 createdAt, uint256 launchTime, LearningMEMECore.TokenStatus status) =
-            core.tokenInfo(tokenAddress);
+        (
+            address storedCreator,
+            uint256 createdAt,
+            uint256 launchTime,
+            LearningMEMECore.TokenStatus status,
+            address liquidityPool
+        ) = core.tokenInfo(tokenAddress);
         assertEq(storedCreator, creator);
         assertEq(createdAt, block.timestamp);
         assertEq(launchTime, params.launchTime);
         assertEq(uint8(status), uint8(LearningMEMECore.TokenStatus.TRADING));
+        assertEq(liquidityPool, address(0));
     }
 
     function testRefundsPaymentAboveCreationFee() public {

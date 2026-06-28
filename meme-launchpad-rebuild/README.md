@@ -78,6 +78,17 @@ contracts stay untouched.
 - `Step05InitialBuyAndVesting.t.sol` covers direct initial purchases, payment,
   curve state, cliff unlocks, linear claims, and invalid allocations.
 
+### Step 6: Graduation + DEX Liquidity
+
+- A curve enters `PENDING_GRADUATION` when fewer than ten sale tokens remain,
+  stopping bonding-curve trades while liquidity is prepared.
+- `LearningDEXRouter` creates a local `LearningLiquidityPool`, transfers token
+  and native reserves into it, and mints permanently locked LP tokens.
+- `graduateToken` distributes platform and creator graduation fees, deposits the
+  remaining assets as liquidity, records the pair, and enables normal transfers.
+- `Step06GraduationAndLiquidity.t.sol` covers the threshold transition, role and
+  status checks, fee distribution, pair reserves, LP locking, and final state.
+
 Run it with:
 
 ```bash

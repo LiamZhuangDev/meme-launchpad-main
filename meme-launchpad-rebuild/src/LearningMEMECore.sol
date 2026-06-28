@@ -7,6 +7,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LearningMEMEFactory} from "./LearningMEMEFactory.sol";
 import {LearningMEMEToken} from "./LearningMEMEToken.sol";
+import {LearningDEXRouter} from "./LearningDEXRouter.sol";
 import {ILearningMEMEHelper} from "./interfaces/ILearningMEMEHelper.sol";
 import {ILearningMEMEVesting} from "./interfaces/ILearningMEMEVesting.sol";
 
@@ -20,6 +21,8 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     uint256 public constant REQUEST_EXPIRY = 1 hours;
     uint256 public constant MAX_INITIAL_BUY_PERCENTAGE = 9_990;
+    uint256 public constant MIN_LIQUIDITY = 10 ether;
+    address public constant DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     struct VestingAllocation {
         uint256 percentageBP;
@@ -29,7 +32,9 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
 
     enum TokenStatus {
         NOT_CREATED,
-        TRADING
+        TRADING,
+        PENDING_GRADUATION,
+        GRADUATED
     }
 
     struct CreateTokenParams {
@@ -53,6 +58,16 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         uint256 createdAt;
         uint256 launchTime;
         TokenStatus status;
+        address liquidityPool;
+    }
+
+    struct GraduationAmounts {
+        uint256 nativePlatformFee;
+        uint256 nativeCreatorFee;
+        uint256 nativeLiquidity;
+        uint256 tokenPlatformFee;
+        uint256 tokenCreatorFee;
+        uint256 tokenLiquidity;
     }
 
     bool public initialized;
@@ -63,6 +78,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     address public platformFeeReceiver;
     address public marginReceiver;
     address public graduateFeeReceiver;
+    address public dexRouter;
     uint256 public chainId;
 
     uint256 public creationFee;
@@ -94,10 +110,13 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     error InsufficientLiquidity();
     error InvalidInitialBuy();
     error InvalidVestingAllocation();
+    error InvalidGraduationStatus();
+    error GraduationLiquidityUnavailable();
 
     event Initialized(address indexed admin, address indexed signer, address indexed factory);
     event HelperChanged(address indexed oldHelper, address indexed newHelper);
     event VestingChanged(address indexed oldVesting, address indexed newVesting);
+    event DexRouterChanged(address indexed oldRouter, address indexed newRouter);
     event TokenCreated(
         address indexed token,
         address indexed creator,
@@ -132,6 +151,10 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         address indexed token, address indexed creator, uint256 tokenAmount, uint256 bnbAmount, uint256 tradingFee
     );
     event VestingCreated(address indexed token, address indexed beneficiary, uint256 amount, uint256 scheduleCount);
+    event TokenStatusChanged(address indexed token, TokenStatus oldStatus, TokenStatus newStatus);
+    event TokenGraduated(
+        address indexed token, address indexed pair, uint256 nativeLiquidity, uint256 tokenLiquidity, uint256 lpTokens
+    );
 
     function initialize(
         address factory_,
@@ -233,7 +256,8 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
             creator: params.creator,
             createdAt: block.timestamp,
             launchTime: params.launchTime,
-            status: TokenStatus.TRADING
+            status: TokenStatus.TRADING,
+            liquidityPool: address(0)
         });
 
         if (initialTokens > 0) {
@@ -288,6 +312,11 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
 
         _sendNative(platformFeeReceiver, tradingFee);
         LearningMEMEToken(token).safeTransfer(msg.sender, tokenAmount);
+
+        if (curve.availableTokens < MIN_LIQUIDITY) {
+            _changeTokenStatus(token, TokenStatus.PENDING_GRADUATION);
+            LearningMEMEToken(token).setTransferMode(LearningMEMEToken.TransferMode.RESTRICTED);
+        }
 
         emit TokenBought(
             token,
@@ -381,6 +410,41 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         feeAmount = bnbAmount * preBuyFeeRate / 10_000;
     }
 
+    function graduateToken(address token) external onlyRole(DEPLOYER_ROLE) nonReentrant {
+        TokenInfo storage info = tokenInfo[token];
+        if (info.status != TokenStatus.PENDING_GRADUATION) revert InvalidGraduationStatus();
+        if (dexRouter == address(0)) revert ZeroAddress();
+
+        ILearningMEMEHelper.BondingCurveParams storage curve = bondingCurve[token];
+        uint256 collectedBNB = curve.collectedBNB;
+        uint256 remainingTokens = curve.availableTokens;
+        if (collectedBNB == 0 || remainingTokens == 0) revert GraduationLiquidityUnavailable();
+
+        GraduationAmounts memory amounts = _graduationAmounts(collectedBNB, remainingTokens);
+
+        LearningDEXRouter router = LearningDEXRouter(dexRouter);
+        address pair = router.createPair(token);
+        LearningMEMEToken memeToken = LearningMEMEToken(token);
+        memeToken.setPair(pair);
+        memeToken.setTransferMode(LearningMEMEToken.TransferMode.NORMAL);
+
+        curve.availableTokens = 0;
+        curve.collectedBNB = 0;
+        _changeTokenStatus(token, TokenStatus.GRADUATED);
+        info.liquidityPool = pair;
+
+        memeToken.safeIncreaseAllowance(dexRouter, amounts.tokenLiquidity);
+        (, uint256 lpTokens) =
+            router.addLiquidity{value: amounts.nativeLiquidity}(token, amounts.tokenLiquidity, DEAD_ADDRESS);
+
+        _sendNative(graduateFeeReceiver, amounts.nativePlatformFee);
+        if (amounts.tokenPlatformFee > 0) memeToken.safeTransfer(graduateFeeReceiver, amounts.tokenPlatformFee);
+        _sendNative(info.creator, amounts.nativeCreatorFee);
+        if (amounts.tokenCreatorFee > 0) memeToken.safeTransfer(info.creator, amounts.tokenCreatorFee);
+
+        emit TokenGraduated(token, pair, amounts.nativeLiquidity, amounts.tokenLiquidity, lpTokens);
+    }
+
     function setHelper(address helper_) external onlyRole(ADMIN_ROLE) {
         if (helper_ == address(0)) revert ZeroAddress();
         address oldHelper = helper;
@@ -395,7 +459,15 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         emit VestingChanged(oldVesting, vesting_);
     }
 
+    function setDexRouter(address dexRouter_) external onlyRole(ADMIN_ROLE) {
+        if (dexRouter_ == address(0)) revert ZeroAddress();
+        address oldRouter = dexRouter;
+        dexRouter = dexRouter_;
+        emit DexRouterChanged(oldRouter, dexRouter_);
+    }
+
     function _sendNative(address receiver, uint256 amount) private {
+        if (amount == 0) return;
         (bool success,) = payable(receiver).call{value: amount}("");
         if (!success) revert NativeTransferFailed();
     }
@@ -404,6 +476,26 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         TokenInfo memory info = tokenInfo[token];
         if (info.creator == address(0) || info.status != TokenStatus.TRADING) revert TokenNotTrading();
         if (info.launchTime > block.timestamp) revert TokenNotLaunchedYet();
+    }
+
+    function _changeTokenStatus(address token, TokenStatus newStatus) private {
+        TokenStatus oldStatus = tokenInfo[token].status;
+        tokenInfo[token].status = newStatus;
+        emit TokenStatusChanged(token, oldStatus, newStatus);
+    }
+
+    function _graduationAmounts(uint256 collectedBNB, uint256 remainingTokens)
+        private
+        view
+        returns (GraduationAmounts memory amounts)
+    {
+        amounts.nativePlatformFee = collectedBNB * graduationPlatformFeeRate / 10_000;
+        amounts.nativeCreatorFee = collectedBNB * graduationCreatorFeeRate / 10_000;
+        amounts.nativeLiquidity = collectedBNB - amounts.nativePlatformFee - amounts.nativeCreatorFee;
+
+        amounts.tokenPlatformFee = remainingTokens * graduationPlatformFeeRate / 10_000;
+        amounts.tokenCreatorFee = remainingTokens * graduationCreatorFeeRate / 10_000;
+        amounts.tokenLiquidity = remainingTokens - amounts.tokenPlatformFee - amounts.tokenCreatorFee;
     }
 
     function _calculateInitialBuy(CreateTokenParams memory params)
