@@ -3,6 +3,7 @@ pragma solidity ^0.8.20;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {LearningMEMEFactory} from "./LearningMEMEFactory.sol";
@@ -11,7 +12,7 @@ import {LearningDEXRouter} from "./LearningDEXRouter.sol";
 import {ILearningMEMEHelper} from "./interfaces/ILearningMEMEHelper.sol";
 import {ILearningMEMEVesting} from "./interfaces/ILearningMEMEVesting.sol";
 
-contract LearningMEMECore is AccessControl, ReentrancyGuard {
+contract LearningMEMECore is AccessControl, ReentrancyGuard, Pausable {
     using ECDSA for bytes32;
     using SafeERC20 for LearningMEMEToken;
 
@@ -31,10 +32,12 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     }
 
     enum TokenStatus {
-        NOT_CREATED,
-        TRADING,
-        PENDING_GRADUATION,
-        GRADUATED
+        NOT_CREATED, // The default value for an unknown token.
+        TRADING, // Assigned by createToken(), users can buy and sell through the bonding curve. The token uses CONTROLLED transfer mode.
+        PENDING_GRADUATION, // Enter after a buy leaves fewer than MIN_LIQUIDITY, bonding curve trading stops. Token transfers become RESTRICTED.
+        GRADUATED, // Enter when graduateToken() is called, the collected BNB and remaining tokens are added to the DEX pool. Transfer mode becomes NORMAL, allowing regular ERC-20 trading.
+        PAUSED, // Temporarily stop one token. Transfers become RESTRICTED.
+        BLACKLISTED // An admin can freeze any existing token
     }
 
     struct CreateTokenParams {
@@ -91,6 +94,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     mapping(bytes32 => bool) public usedRequestIds;
     mapping(address => TokenInfo) public tokenInfo;
     mapping(address => ILearningMEMEHelper.BondingCurveParams) public bondingCurve;
+    mapping(address => TokenStatus) private statusBeforeBlacklist;
 
     error AlreadyInitialized();
     error ZeroAddress();
@@ -112,6 +116,8 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     error InvalidVestingAllocation();
     error InvalidGraduationStatus();
     error GraduationLiquidityUnavailable();
+    error InvalidTokenStatus();
+    error InvalidAdminValue();
 
     event Initialized(address indexed admin, address indexed signer, address indexed factory);
     event HelperChanged(address indexed oldHelper, address indexed newHelper);
@@ -155,6 +161,18 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     event TokenGraduated(
         address indexed token, address indexed pair, uint256 nativeLiquidity, uint256 tokenLiquidity, uint256 lpTokens
     );
+    event TokenPaused(address indexed token);
+    event TokenUnpaused(address indexed token);
+    event TokenBlacklisted(address indexed token);
+    event TokenRemovedFromBlacklist(address indexed token);
+    event PlatformFeeReceiverChanged(address indexed oldReceiver, address indexed newReceiver);
+    event GraduateFeeReceiverChanged(address indexed oldReceiver, address indexed newReceiver);
+    event MarginReceiverChanged(address indexed oldReceiver, address indexed newReceiver);
+    event CreationFeeChanged(uint256 fee);
+    event PreBuyFeeRateChanged(uint256 rate);
+    event TradingFeeRateChanged(uint256 rate);
+    event GraduationFeeRatesChanged(uint256 platformRate, uint256 creatorRate);
+    event MinLockTimeChanged(uint256 minLockTime);
 
     function initialize(
         address factory_,
@@ -212,6 +230,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         external
         payable
         nonReentrant
+        whenNotPaused
         returns (address tokenAddress)
     {
         if (msg.value < creationFee) revert InsufficientFee();
@@ -277,7 +296,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         );
     }
 
-    function buy(address token, uint256 minTokenAmount, uint256 deadline) external payable nonReentrant {
+    function buy(address token, uint256 minTokenAmount, uint256 deadline) external payable nonReentrant whenNotPaused {
         _validateTrade(token);
         // It limits a buy tx's deadline to less than 24 hours in the future: block.timestamp <= deadline < block.timestamp + 1 day
         if (deadline < block.timestamp) revert TransactionExpired();
@@ -331,7 +350,11 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         );
     }
 
-    function sell(address token, uint256 tokenAmount, uint256 minBNBAmount, uint256 deadline) external nonReentrant {
+    function sell(address token, uint256 tokenAmount, uint256 minBNBAmount, uint256 deadline)
+        external
+        nonReentrant
+        whenNotPaused
+    {
         _validateTrade(token);
         if (block.timestamp > deadline) revert TransactionExpired();
         if (tokenAmount == 0) revert InvalidTokenAmount();
@@ -445,6 +468,56 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         emit TokenGraduated(token, pair, amounts.nativeLiquidity, amounts.tokenLiquidity, lpTokens);
     }
 
+    function pauseToken(address token) external onlyRole(PAUSER_ROLE) {
+        if (tokenInfo[token].status != TokenStatus.TRADING) revert InvalidTokenStatus();
+        _changeTokenStatus(token, TokenStatus.PAUSED);
+        LearningMEMEToken(token).setTransferMode(LearningMEMEToken.TransferMode.RESTRICTED);
+        emit TokenPaused(token);
+    }
+
+    function unpauseToken(address token) external onlyRole(PAUSER_ROLE) {
+        if (tokenInfo[token].status != TokenStatus.PAUSED) revert InvalidTokenStatus();
+        _changeTokenStatus(token, TokenStatus.TRADING);
+        LearningMEMEToken(token).setTransferMode(LearningMEMEToken.TransferMode.CONTROLLED);
+        emit TokenUnpaused(token);
+    }
+
+    function blacklistToken(address token) external onlyRole(ADMIN_ROLE) {
+        TokenStatus currentStatus = tokenInfo[token].status;
+        if (currentStatus == TokenStatus.NOT_CREATED || currentStatus == TokenStatus.BLACKLISTED) {
+            revert InvalidTokenStatus();
+        }
+
+        statusBeforeBlacklist[token] = currentStatus;
+        _changeTokenStatus(token, TokenStatus.BLACKLISTED);
+        LearningMEMEToken(token).setTransferMode(LearningMEMEToken.TransferMode.RESTRICTED);
+        emit TokenBlacklisted(token);
+    }
+
+    function removeFromBlacklist(address token) external onlyRole(ADMIN_ROLE) {
+        if (tokenInfo[token].status != TokenStatus.BLACKLISTED) revert InvalidTokenStatus();
+
+        TokenStatus restoredStatus = statusBeforeBlacklist[token];
+        delete statusBeforeBlacklist[token];
+        _changeTokenStatus(token, restoredStatus);
+
+        LearningMEMEToken.TransferMode mode = restoredStatus == TokenStatus.GRADUATED
+            ? LearningMEMEToken.TransferMode.NORMAL
+            : restoredStatus == TokenStatus.TRADING
+                ? LearningMEMEToken.TransferMode.CONTROLLED
+                : LearningMEMEToken.TransferMode.RESTRICTED;
+        LearningMEMEToken(token).setTransferMode(mode);
+        emit TokenRemovedFromBlacklist(token);
+    }
+
+    function pause() external onlyRole(PAUSER_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(ADMIN_ROLE) {
+        _unpause();
+    }
+
     function setHelper(address helper_) external onlyRole(ADMIN_ROLE) {
         if (helper_ == address(0)) revert ZeroAddress();
         address oldHelper = helper;
@@ -464,6 +537,57 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         address oldRouter = dexRouter;
         dexRouter = dexRouter_;
         emit DexRouterChanged(oldRouter, dexRouter_);
+    }
+
+    function setPlatformFeeReceiver(address receiver) external onlyRole(ADMIN_ROLE) {
+        if (receiver == address(0)) revert ZeroAddress();
+        address oldReceiver = platformFeeReceiver;
+        platformFeeReceiver = receiver;
+        emit PlatformFeeReceiverChanged(oldReceiver, receiver);
+    }
+
+    function setGraduateFeeReceiver(address receiver) external onlyRole(ADMIN_ROLE) {
+        if (receiver == address(0)) revert ZeroAddress();
+        address oldReceiver = graduateFeeReceiver;
+        graduateFeeReceiver = receiver;
+        emit GraduateFeeReceiverChanged(oldReceiver, receiver);
+    }
+
+    function setMarginReceiver(address receiver) external onlyRole(ADMIN_ROLE) {
+        if (receiver == address(0)) revert ZeroAddress();
+        address oldReceiver = marginReceiver;
+        marginReceiver = receiver;
+        emit MarginReceiverChanged(oldReceiver, receiver);
+    }
+
+    function setCreationFee(uint256 fee) external onlyRole(ADMIN_ROLE) {
+        if (fee > 0.1 ether) revert InvalidAdminValue();
+        creationFee = fee;
+        emit CreationFeeChanged(fee);
+    }
+
+    function setPreBuyFeeRate(uint256 rate) external onlyRole(ADMIN_ROLE) {
+        if (rate > 600) revert InvalidAdminValue();
+        preBuyFeeRate = rate;
+        emit PreBuyFeeRateChanged(rate);
+    }
+
+    function setTradingFeeRate(uint256 rate) external onlyRole(ADMIN_ROLE) {
+        if (rate > 200) revert InvalidAdminValue();
+        tradingFeeRate = rate;
+        emit TradingFeeRateChanged(rate);
+    }
+
+    function setGraduationFeeRates(uint256 platformRate, uint256 creatorRate) external onlyRole(ADMIN_ROLE) {
+        if (platformRate > 1_100 || creatorRate > 500) revert InvalidAdminValue();
+        graduationPlatformFeeRate = platformRate;
+        graduationCreatorFeeRate = creatorRate;
+        emit GraduationFeeRatesChanged(platformRate, creatorRate);
+    }
+
+    function setMinLockTime(uint256 lockTime) external onlyRole(ADMIN_ROLE) {
+        minLockTime = lockTime;
+        emit MinLockTimeChanged(lockTime);
     }
 
     function _sendNative(address receiver, uint256 amount) private {

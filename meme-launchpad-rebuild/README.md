@@ -89,6 +89,17 @@ contracts stay untouched.
 - `Step06GraduationAndLiquidity.t.sol` covers the threshold transition, role and
   status checks, fee distribution, pair reserves, LP locking, and final state.
 
+### Step 7: Admin + Emergency Controls
+
+- Global pause stops token creation and curve buy/sell operations while leaving
+  recovery and administration available; pausers stop, but only admins resume.
+- Per-token pause temporarily freezes a trading curve, while blacklist freezes
+  any existing token and later restores its exact previous lifecycle state.
+- Admin setters update fee receivers, fee rates, and minimum vesting duration
+  with the same upper bounds as the original protocol.
+- `Step07AdminAndEmergencyControls.t.sol` covers role separation, global and
+  token-specific freezes, blacklist restoration, valid updates, and limit checks.
+
 Run it with:
 
 ```bash
