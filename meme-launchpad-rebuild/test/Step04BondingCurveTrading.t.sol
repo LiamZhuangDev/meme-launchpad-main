@@ -181,7 +181,9 @@ contract Step04BondingCurveTradingTest is Test {
             creator: creator,
             timestamp: block.timestamp,
             requestId: keccak256(abi.encode("step-04-request", launchTime)),
-            nonce: launchTime + 4
+            nonce: launchTime + 4,
+            initialBuyPercentage: 0,
+            vestingAllocations: new LearningMEMECore.VestingAllocation[](0)
         });
         bytes memory data = abi.encode(params);
         bytes32 digest = keccak256(abi.encodePacked(data, core.chainId(), address(core)));

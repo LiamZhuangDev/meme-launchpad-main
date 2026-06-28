@@ -65,6 +65,19 @@ contracts stay untouched.
 - `Step04BondingCurveTrading.t.sol`: tests quotes, reserve updates, round-trip
   trading, fee transfers, slippage, launch timing, and insufficient liquidity.
 
+### Step 5: Initial Buy + Vesting
+
+- Signed creation can include an initial creator purchase expressed in basis
+  points of total supply, with its exact curve cost and pre-buy fee.
+- The curve begins from post-purchase virtual reserves and records the initial
+  BNB as real collected liquidity before public trading starts.
+- `LearningMEMEVesting` supports CLIFF and LINEAR schedules created only by the
+  core, with beneficiary claims calculated from elapsed time.
+- Initial tokens not assigned to vesting are transferred directly to the
+  creator; vested tokens are held by the vesting contract until claimable.
+- `Step05InitialBuyAndVesting.t.sol` covers direct initial purchases, payment,
+  curve state, cliff unlocks, linear claims, and invalid allocations.
+
 Run it with:
 
 ```bash

@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {LearningMEMEFactory} from "./LearningMEMEFactory.sol";
 import {LearningMEMEToken} from "./LearningMEMEToken.sol";
 import {ILearningMEMEHelper} from "./interfaces/ILearningMEMEHelper.sol";
+import {ILearningMEMEVesting} from "./interfaces/ILearningMEMEVesting.sol";
 
 contract LearningMEMECore is AccessControl, ReentrancyGuard {
     using ECDSA for bytes32;
@@ -18,6 +19,13 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     uint256 public constant REQUEST_EXPIRY = 1 hours;
+    uint256 public constant MAX_INITIAL_BUY_PERCENTAGE = 9_990;
+
+    struct VestingAllocation {
+        uint256 percentageBP;
+        uint256 duration;
+        ILearningMEMEVesting.VestingMode mode;
+    }
 
     enum TokenStatus {
         NOT_CREATED,
@@ -36,6 +44,8 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         uint256 timestamp;
         bytes32 requestId;
         uint256 nonce;
+        uint256 initialBuyPercentage;
+        VestingAllocation[] vestingAllocations;
     }
 
     struct TokenInfo {
@@ -82,6 +92,8 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
     error InvalidTokenAmount();
     error SlippageExceeded();
     error InsufficientLiquidity();
+    error InvalidInitialBuy();
+    error InvalidVestingAllocation();
 
     event Initialized(address indexed admin, address indexed signer, address indexed factory);
     event HelperChanged(address indexed oldHelper, address indexed newHelper);
@@ -116,6 +128,10 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         uint256 availableTokens,
         uint256 collectedBNB
     );
+    event InitialBuyExecuted(
+        address indexed token, address indexed creator, uint256 tokenAmount, uint256 bnbAmount, uint256 tradingFee
+    );
+    event VestingCreated(address indexed token, address indexed beneficiary, uint256 amount, uint256 scheduleCount);
 
     function initialize(
         address factory_,
@@ -193,6 +209,12 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
             revert InvalidTokenParameters();
         }
 
+        (uint256 initialTokens, uint256 initialBNB, uint256 adjustedBNBReserve, uint256 adjustedTokenReserve) =
+            _calculateInitialBuy(params);
+        uint256 initialBuyFee = initialBNB * preBuyFeeRate / 10_000;
+        uint256 totalPaymentRequired = creationFee + initialBNB + initialBuyFee;
+        if (msg.value < totalPaymentRequired) revert InsufficientFee();
+
         // Consume the signed request before making external calls.
         usedRequestIds[params.requestId] = true;
 
@@ -201,11 +223,11 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
 
         LearningMEMEToken(tokenAddress).setTransferMode(LearningMEMEToken.TransferMode.CONTROLLED);
         bondingCurve[tokenAddress] = ILearningMEMEHelper.BondingCurveParams({
-            virtualBNBReserve: params.virtualBNBReserve,
-            virtualTokenReserve: params.virtualTokenReserve,
+            virtualBNBReserve: adjustedBNBReserve,
+            virtualTokenReserve: adjustedTokenReserve,
             k: params.virtualBNBReserve * params.virtualTokenReserve,
-            availableTokens: params.saleAmount,
-            collectedBNB: 0
+            availableTokens: params.saleAmount - initialTokens,
+            collectedBNB: initialBNB
         });
         tokenInfo[tokenAddress] = TokenInfo({
             creator: params.creator,
@@ -214,9 +236,16 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
             status: TokenStatus.TRADING
         });
 
-        _sendNative(platformFeeReceiver, creationFee);
+        if (initialTokens > 0) {
+            uint256 directTokens = _distributeInitialTokens(tokenAddress, params, initialTokens);
+            if (directTokens > 0) LearningMEMEToken(tokenAddress).safeTransfer(params.creator, directTokens);
 
-        uint256 refund = msg.value - creationFee;
+            emit InitialBuyExecuted(tokenAddress, params.creator, initialTokens, initialBNB, initialBuyFee);
+        }
+
+        _sendNative(platformFeeReceiver, creationFee + initialBuyFee);
+
+        uint256 refund = msg.value - totalPaymentRequired;
         if (refund > 0) _sendNative(msg.sender, refund);
 
         emit TokenCreated(
@@ -240,7 +269,7 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
 
         if (tokenAmount > curve.availableTokens) {
             tokenAmount = curve.availableTokens;
-            // when buying the final available tokens, the bonding curve calculates the exact net BNB required. 
+            // when buying the final available tokens, the bonding curve calculates the exact net BNB required.
             netBNBAmount = helperContract.calculateRequiredBNB(tokenAmount, curve);
             // We must work backward to find the fee.
             // fee = gross * rate / 10_000 and net = gross - fee
@@ -336,6 +365,22 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         netBNBAmount = grossBNBAmount - tradingFee;
     }
 
+    function calculateInitialBuyCost(
+        uint256 totalSupply,
+        uint256 virtualBNBReserve,
+        uint256 virtualTokenReserve,
+        uint256 percentageBP
+    ) external view returns (uint256 tokenAmount, uint256 bnbAmount, uint256 feeAmount) {
+        if (percentageBP > MAX_INITIAL_BUY_PERCENTAGE) revert InvalidInitialBuy();
+        tokenAmount = totalSupply * percentageBP / 10_000;
+        if (tokenAmount == 0) return (0, 0, 0);
+        if (tokenAmount >= virtualTokenReserve) revert InvalidInitialBuy();
+
+        uint256 newBNBReserve = virtualBNBReserve * virtualTokenReserve / (virtualTokenReserve - tokenAmount);
+        bnbAmount = newBNBReserve - virtualBNBReserve;
+        feeAmount = bnbAmount * preBuyFeeRate / 10_000;
+    }
+
     function setHelper(address helper_) external onlyRole(ADMIN_ROLE) {
         if (helper_ == address(0)) revert ZeroAddress();
         address oldHelper = helper;
@@ -359,5 +404,68 @@ contract LearningMEMECore is AccessControl, ReentrancyGuard {
         TokenInfo memory info = tokenInfo[token];
         if (info.creator == address(0) || info.status != TokenStatus.TRADING) revert TokenNotTrading();
         if (info.launchTime > block.timestamp) revert TokenNotLaunchedYet();
+    }
+
+    function _calculateInitialBuy(CreateTokenParams memory params)
+        private
+        pure
+        returns (uint256 tokensOut, uint256 bnbRequired, uint256 newBNBReserve, uint256 newTokenReserve)
+    {
+        if (params.initialBuyPercentage > MAX_INITIAL_BUY_PERCENTAGE) revert InvalidInitialBuy();
+        if (params.initialBuyPercentage == 0 && params.vestingAllocations.length > 0) {
+            revert InvalidVestingAllocation();
+        }
+
+        tokensOut = params.totalSupply * params.initialBuyPercentage / 10_000;
+        if (tokensOut > params.saleAmount || tokensOut >= params.virtualTokenReserve) revert InvalidInitialBuy();
+        if (tokensOut == 0) {
+            return (0, 0, params.virtualBNBReserve, params.virtualTokenReserve);
+        }
+
+        newTokenReserve = params.virtualTokenReserve - tokensOut;
+        newBNBReserve = params.virtualBNBReserve * params.virtualTokenReserve / newTokenReserve;
+        bnbRequired = newBNBReserve - params.virtualBNBReserve;
+    }
+
+    function _distributeInitialTokens(address tokenAddress, CreateTokenParams memory params, uint256 initialTokens)
+        private
+        returns (uint256 directTokens)
+    {
+        uint256 allocationCount = params.vestingAllocations.length;
+        if (allocationCount == 0) return initialTokens;
+        if (vesting == address(0)) revert InvalidVestingAllocation();
+
+        ILearningMEMEVesting.ScheduleInput[] memory schedules =
+            new ILearningMEMEVesting.ScheduleInput[](allocationCount);
+        uint256 totalVestedTokens;
+        uint256 totalAllocationBP;
+        uint256 startTime = params.launchTime == 0 ? block.timestamp : params.launchTime;
+
+        for (uint256 i = 0; i < allocationCount; i++) {
+            VestingAllocation memory allocation = params.vestingAllocations[i];
+            if (allocation.percentageBP == 0 || allocation.duration == 0) revert InvalidVestingAllocation();
+            if (allocation.mode == ILearningMEMEVesting.VestingMode.LINEAR && allocation.duration < minLockTime) {
+                revert InvalidVestingAllocation();
+            }
+
+            uint256 amount = params.totalSupply * allocation.percentageBP / 10_000;
+            totalAllocationBP += allocation.percentageBP;
+            totalVestedTokens += amount;
+            schedules[i] = ILearningMEMEVesting.ScheduleInput({
+                amount: amount, startTime: startTime, duration: allocation.duration, mode: allocation.mode
+            });
+        }
+
+        if (totalAllocationBP > params.initialBuyPercentage || totalVestedTokens > initialTokens) {
+            revert InvalidVestingAllocation();
+        }
+
+        LearningMEMEToken token = LearningMEMEToken(tokenAddress);
+        token.setVestingContract(vesting);
+        token.safeIncreaseAllowance(vesting, totalVestedTokens);
+        ILearningMEMEVesting(vesting).createVestingSchedules(tokenAddress, params.creator, schedules);
+
+        emit VestingCreated(tokenAddress, params.creator, totalVestedTokens, allocationCount);
+        return initialTokens - totalVestedTokens;
     }
 }

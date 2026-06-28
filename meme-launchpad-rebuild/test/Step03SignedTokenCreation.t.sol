@@ -143,7 +143,9 @@ contract Step03SignedTokenCreationTest is Test {
             creator: creator,
             timestamp: block.timestamp,
             requestId: keccak256("step-03-request"),
-            nonce: 3
+            nonce: 3,
+            initialBuyPercentage: 0,
+            vestingAllocations: new LearningMEMECore.VestingAllocation[](0)
         });
     }
 
